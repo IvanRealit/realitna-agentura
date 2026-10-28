@@ -1,4 +1,60 @@
-export function Icon({name,className=''}:{name:string;className?:string}){
- const paths:Record<string,React.ReactNode>={arrow:<><path d="M4 12h16M14 6l6 6-6 6"/></>,pin:<><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></>,heart:<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z"/>,area:<><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></>,bed:<><path d="M3 18V9h18v9M3 14h18M5 9V5h14v4M3 18v3m18-3v3"/><path d="M8 5v4m8-4v4"/></>,search:<><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></>,menu:<path d="M4 6h16M4 12h16M4 18h16"/>,close:<path d="m5 5 14 14M19 5 5 19"/>,check:<path d="m4 12 5 5L20 6"/>};
- return <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]??paths.arrow}</svg>;
+export function Icon({
+  name,
+  className = "",
+}: {
+  name: string;
+  className?: string;
+}) {
+  const paths: Record<string, React.ReactNode> = {
+    arrow: (
+      <>
+        <path d="M4 12h16M14 6l6 6-6 6" />
+      </>
+    ),
+    pin: (
+      <>
+        <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" />
+        <circle cx="12" cy="10" r="2.5" />
+      </>
+    ),
+    heart: (
+      <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8Z" />
+    ),
+    area: (
+      <>
+        <path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" />
+      </>
+    ),
+    bed: (
+      <>
+        <path d="M3 18V9h18v9M3 14h18M5 9V5h14v4M3 18v3m18-3v3" />
+        <path d="M8 5v4m8-4v4" />
+      </>
+    ),
+    search: (
+      <>
+        <circle cx="10" cy="10" r="6" />
+        <path d="m15 15 6 6" />
+      </>
+    ),
+    menu: <path d="M4 6h16M4 12h16M4 18h16" />,
+    close: <path d="m5 5 14 14M19 5 5 19" />,
+    check: <path d="m4 12 5 5L20 6" />,
+  };
+  return (
+    <svg
+      className={className}
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {paths[name] ?? paths.arrow}
+    </svg>
+  );
 }

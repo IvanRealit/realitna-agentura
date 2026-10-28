@@ -1,76 +1,177 @@
-import Image from 'next/image';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import type { Metadata } from 'next';
-import type { Prisma } from '@prisma/client';
-import { db } from '@/lib/db';
-import { filters,pageNumber,publicStatuses,type Query } from '@/lib/catalog';
-import { dictionaries,href,isLocale,label,locales,money,routeKey,translation,type Locale,type RouteKey } from '@/lib/i18n';
-import { aboutCopy,legalCopy } from '@/lib/copy';
-import { siteSettings,siteUrl,jsonLd } from '@/lib/site';
-import { Consent,FavoriteGrid,Gallery,Header,LeadForm,MapView } from '@/components/client';
-import { PropertyCard } from '@/components/property-card';
-import { Filters } from '@/components/filters';
-import { Icon } from '@/components/icons';
-export const dynamic='force-dynamic';
-type Props={params:Promise<{locale:string;path?:string[]}>;searchParams:Promise<Record<string,string|string[]|undefined>>};
-async function resolve(props:Props){const {locale,path=[]}=await props.params;if(!isLocale(locale))notFound();const key=routeKey(locale,path[0]);if(path[0]&&!key)notFound();if(path.length>2)notFound();return {l:locale,key,slug:path[1],path};}
-async function visibleProperty(slug:string){return db.property.findFirst({where:{slug,status:{in:[...publicStatuses]}},include:{agent:true}});}
-export async function generateMetadata(props:Props):Promise<Metadata>{
- const {l,key,slug}=await resolve(props);const d=dictionaries[l];const settings=await siteSettings();let title=key?d[key]:`${settings.brand} — ${d.eyebrow.toLowerCase()}`;let description=d.intro;let image='/images/living.webp';let demo=false;
- if(key==='catalog'&&slug){const p=await visibleProperty(slug);if(!p)notFound();const t=translation(p.translations,l);const seo=translation(p.seo,l);title=seo.title||t.title;description=seo.description||t.description.slice(0,160);image=p.images[0]??image;demo=p.demo;}
- if(key==='blog'&&slug){const c=await db.content.findFirst({where:{slug,kind:'BLOG',published:true}});if(!c)notFound();const t=translation(c.translations,l);const s=translation(c.seo,l);title=s.title||t.title;description=s.description||t.description.slice(0,160);}
- if(key==='locations'&&slug){const p=await db.property.findFirst({where:{status:{in:[...publicStatuses]},OR:[{city:{equals:slug.replaceAll('-',' '),mode:'insensitive'}},{region:{equals:slug.replaceAll('-',' '),mode:'insensitive'}}]}});if(!p)notFound();title=`${d.catalog} — ${p.city.toLowerCase().replaceAll(' ','-')===slug?p.city:p.region}`;}
- if(key&& !['catalog','blog','locations'].includes(key)&&slug)notFound();
- if(key){const c=await db.content.findFirst({where:{slug:key,kind:'PAGE',published:true}});if(c){const seo=translation(c.seo,l);if(seo.title)title=seo.title;if(seo.description)description=seo.description;}}
- const q=await props.searchParams;const hasFilters=Object.keys(q).length>0;
- return {title:{absolute:`${title} | ${settings.brand}`},description,alternates:{canonical:href(l,key,slug),languages:{...Object.fromEntries(locales.map(lang=>[lang,href(lang,key,slug)])),'x-default':href('sk',key,slug)}},openGraph:{title,description,url:href(l,key,slug),type:'website',locale:l==='sk'?'sk_SK':l==='uk'?'uk_UA':'en_GB',images:[{url:image,width:1600,height:1000,alt:title}]},robots:demo||hasFilters?{index:false,follow:true}:undefined};
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { db } from "@/lib/db";
+import { publicStatuses, type Query } from "@/lib/catalog";
+import {
+  dictionaries,
+  href,
+  isLocale,
+  locales,
+  routeKey,
+  translation,
+} from "@/lib/i18n";
+import { siteSettings, siteUrl, jsonLd } from "@/lib/site";
+import { Consent, FavoriteGrid, Header } from "@/components/client";
+import { PropertyCard } from "@/components/property-card";
+import { visibleProperty } from "@/lib/properties";
+import { PageHead } from "@/components/pages/page-head";
+import { Home } from "@/components/pages/home";
+import { Catalog } from "@/components/pages/catalog";
+import { Detail } from "@/components/pages/detail";
+import { ContentPage } from "@/components/pages/content-page";
+import { Footer } from "@/components/pages/footer";
+export const dynamic = "force-dynamic";
+type Props = {
+  params: Promise<{ locale: string; path?: string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+async function resolve(props: Props) {
+  const { locale, path = [] } = await props.params;
+  if (!isLocale(locale)) notFound();
+  const key = routeKey(locale, path[0]);
+  if (path[0] && !key) notFound();
+  if (path.length > 2) notFound();
+  return { l: locale, key, slug: path[1], path };
 }
-export default async function Page(props:Props){
- const {l,key,slug}=await resolve(props);const d=dictionaries[l];const settings=await siteSettings();const raw=await props.searchParams;const q:Query=Object.fromEntries(Object.entries(raw).map(([k,v])=>[k,Array.isArray(v)?v[0]:v]));
- let content:React.ReactNode;
- if(!key) content=await Home({l});
- else if(key==='catalog'&&slug) content=await Detail({l,slug});
- else if(['catalog','sale','rent','new','commercial','locations'].includes(key))content=await Catalog({l,key,q,slug});
- else if(key==='favorites'){const p=await db.property.findMany({where:{status:{in:[...publicStatuses]}},orderBy:{createdAt:'desc'},take:500});content=<><PageHead l={l} title={d.favorites}/><section className="container section" style={{paddingTop:0}}><FavoriteGrid l={l} ids={p.map(v=>v.id)}>{p.map(v=><PropertyCard key={v.id} property={v} l={l}/>)}</FavoriteGrid></section></>;}
- else content=await ContentPage({l,key,slug});
- return <><Header l={l} brand={settings.brand} current={key} slug={slug}/><main id="main">{content}</main><Footer l={l}/><Consent l={l}/></>;
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const { l, key, slug } = await resolve(props);
+  const d = dictionaries[l];
+  const settings = await siteSettings();
+  let title = key ? d[key] : `${settings.brand} — ${d.eyebrow.toLowerCase()}`;
+  let description = d.intro;
+  let image = "/images/living.webp";
+  let demo = false;
+  if (key === "catalog" && slug) {
+    const p = await visibleProperty(slug);
+    if (!p) notFound();
+    const t = translation(p.translations, l);
+    const seo = translation(p.seo, l);
+    title = seo.title || t.title;
+    description = seo.description || t.description.slice(0, 160);
+    image = p.images[0] ?? image;
+    demo = p.demo;
+  }
+  if (key === "blog" && slug) {
+    const c = await db.content.findFirst({
+      where: { slug, kind: "BLOG", published: true },
+    });
+    if (!c) notFound();
+    const t = translation(c.translations, l);
+    const s = translation(c.seo, l);
+    title = s.title || t.title;
+    description = s.description || t.description.slice(0, 160);
+  }
+  if (key === "locations" && slug) {
+    const p = await db.property.findFirst({
+      where: {
+        status: { in: [...publicStatuses] },
+        OR: [
+          { city: { equals: slug.replaceAll("-", " "), mode: "insensitive" } },
+          {
+            region: { equals: slug.replaceAll("-", " "), mode: "insensitive" },
+          },
+        ],
+      },
+    });
+    if (!p) notFound();
+    title = `${d.catalog} — ${p.city.toLowerCase().replaceAll(" ", "-") === slug ? p.city : p.region}`;
+  }
+  if (key && !["catalog", "blog", "locations"].includes(key) && slug)
+    notFound();
+  if (key) {
+    const c = await db.content.findFirst({
+      where: { slug: key, kind: "PAGE", published: true },
+    });
+    if (c) {
+      const seo = translation(c.seo, l);
+      if (seo.title) title = seo.title;
+      if (seo.description) description = seo.description;
+    }
+  }
+  const q = await props.searchParams;
+  const hasFilters = Object.keys(q).length > 0;
+  return {
+    title: { absolute: `${title} | ${settings.brand}` },
+    description,
+    alternates: {
+      canonical: href(l, key, slug),
+      languages: {
+        ...Object.fromEntries(
+          locales.map((lang) => [lang, href(lang, key, slug)]),
+        ),
+        "x-default": href("sk", key, slug),
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: href(l, key, slug),
+      type: "website",
+      locale: l === "sk" ? "sk_SK" : l === "uk" ? "uk_UA" : "en_GB",
+      images: [{ url: image, width: 1600, height: 1000, alt: title }],
+    },
+    robots: demo || hasFilters ? { index: false, follow: true } : undefined,
+  };
 }
-function PageHead({l,title,description}:{l:Locale;title:string;description?:string}){const d=dictionaries[l];return <section className="container page-head"><nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={href(l)}>{d.home}</Link><span>/</span><span>{title}</span></nav><h1>{title}</h1>{description&&<p>{description}</p>}</section>;}
-async function Home({l}:{l:Locale}){
- const d=dictionaries[l];const properties=await db.property.findMany({where:{status:{in:[...publicStatuses]},featured:true},take:3,orderBy:{updatedAt:'desc'}});const cities=await db.property.findMany({where:{status:{in:[...publicStatuses]}},distinct:['city'],select:{city:true}});
- return <><section className="hero"><div className="hero-image"><Image src="/images/living.webp" alt={l==='uk'?'Ілюстративний сучасний інтер’єр':l==='en'?'Illustrative contemporary interior':'Ilustračný moderný interiér'} fill priority sizes="(max-width:800px) 100vw, 70vw"/></div><div className="container hero-content"><div className="eyebrow">{d.eyebrow}</div><h1>{d.hero}</h1><p>{d.intro}</p><Link className="button" href={href(l,'catalog')}>{d.explore}<Icon name="arrow"/></Link></div><span className="hero-note">DEMO · {l==='sk'?'ILUSTRAČNÝ INTERIÉR':l==='uk'?'ІЛЮСТРАТИВНИЙ ІНТЕР’ЄР':'ILLUSTRATIVE INTERIOR'}</span></section><div className="container"><form className="hero-search" action={href(l,'catalog')}><label>{d.sale} / {d.rent}<select name="transaction"><option value="SALE">{d.sale}</option><option value="RENT">{d.rent}</option></select></label><label>{d.city}<select name="city"><option value="">{l==='sk'?'Celé Slovensko':l==='uk'?'Уся Словаччина':'All Slovakia'}</option>{cities.map(c=><option key={c.city}>{c.city}</option>)}</select></label><label>{d.type}<select name="type"><option value="">—</option>{['APARTMENT','HOUSE','LAND','COMMERCIAL'].map(t=><option key={t} value={t}>{label(t,l)}</option>)}</select></label><button className="button"><Icon name="search"/>{d.search}</button></form></div><section className="container section"><div className="section-head"><div><div className="eyebrow">01 / {d.catalog}</div><h2>{d.featured}</h2><p>{d.featuredIntro}</p></div><Link className="text-link" href={href(l,'catalog')}>{d.all}<Icon name="arrow"/></Link></div><div className="property-grid">{properties.map(p=><PropertyCard key={p.id} property={p} l={l}/>)}</div><p className="demo-notice">{d.notice}</p></section><section className="container section" style={{paddingTop:10}}><div className="story"><div className="story-image"><Image src="/images/living.webp" alt={d.about} fill sizes="(max-width:800px) 100vw, 45vw"/></div><div className="story-copy"><div className="eyebrow">02 / {d.about}</div><h2>{d.trustTitle}</h2><p>{d.trustBody}</p><Link href={href(l,'about')} className="text-link">{d.about}<Icon name="arrow"/></Link><div className="story-proof"><div><strong>01</strong><span>{d.service1}</span></div><div><strong>02</strong><span>{d.service2}</span></div><div><strong>03</strong><span>{d.service3}</span></div></div></div></div></section><section className="services-section"><div className="container section"><div className="section-head"><div><div className="eyebrow">03 / {d.services}</div><h2>{d.services}</h2></div><Link className="text-link" href={href(l,'services')}>{d.all}<Icon name="arrow"/></Link></div><Services l={l}/></div></section><section className="container section"><div className="cta"><div><div className="eyebrow">{d.contact}</div><h2>{d.cta}</h2><p>{d.ctaBody}</p></div><Link href={href(l,'contact')} className="button light">{d.contact}<Icon name="arrow"/></Link></div><div className="location-links">{cities.map(c=><Link key={c.city} href={href(l,'locations',c.city.toLowerCase().replaceAll(' ','-'))}>{d.catalog} · {c.city} ↗</Link>)}</div></section></>;
+export default async function Page(props: Props) {
+  const { l, key, slug } = await resolve(props);
+  const d = dictionaries[l];
+  const settings = await siteSettings();
+  const raw = await props.searchParams;
+  const q: Query = Object.fromEntries(
+    Object.entries(raw).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]),
+  );
+  let content: React.ReactNode;
+  if (!key) content = await Home({ l });
+  else if (key === "catalog" && slug) content = await Detail({ l, slug });
+  else if (
+    ["catalog", "sale", "rent", "new", "commercial", "locations"].includes(key)
+  )
+    content = await Catalog({ l, key, q, slug });
+  else if (key === "favorites") {
+    const p = await db.property.findMany({
+      where: { status: { in: [...publicStatuses] } },
+      orderBy: { createdAt: "desc" },
+      take: 500,
+    });
+    content = (
+      <>
+        <PageHead l={l} title={d.favorites} />
+        <section className="container section" style={{ paddingTop: 0 }}>
+          <FavoriteGrid l={l} ids={p.map((v) => v.id)}>
+            {p.map((v) => (
+              <PropertyCard key={v.id} property={v} l={l} />
+            ))}
+          </FavoriteGrid>
+        </section>
+      </>
+    );
+  } else content = await ContentPage({ l, key, slug });
+  return (
+    <>
+      <a href="#main" className="skip-link">
+        {l === "sk"
+          ? "Preskočiť na obsah"
+          : l === "uk"
+            ? "Перейти до вмісту"
+            : "Skip to content"}
+      </a>
+      <Header l={l} brand={settings.brand} current={key} slug={slug} />
+      <main id="main">{content}</main>
+      <Footer l={l} />
+      <Consent l={l} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: settings.brand,
+            url: siteUrl().href,
+            inLanguage: locales,
+          }),
+        }}
+      />
+    </>
+  );
 }
-function Services({l}:{l:Locale}){const d=dictionaries[l];return <div className="services-grid">{[1,2,3].map((n)=><article className="service-card" key={n}><div className="service-number">0{n}</div><h3>{d[`service${n}` as 'service1']}</h3><p>{d[`serviceBody${n}` as 'serviceBody1']}</p><Link href={href(l,n===3?'valuation':'contact')} className="text-link">{n===3?d.valuation:d.contact}<Icon name="arrow"/></Link></article>)}</div>;}
-async function Catalog({l,key,q,slug}:{l:Locale;key:RouteKey;q:Query;slug?:string}){
- const d=dictionaries[l];const query={...q};if(key==='sale')query.transaction='SALE';if(key==='rent')query.transaction='RENT';if(key==='new')query.condition='NEW';if(key==='commercial')query.type='COMMERCIAL';
- let locationName='';
- if(key==='locations'&&slug){const p=await db.property.findFirst({where:{status:{in:[...publicStatuses]},OR:[{city:{equals:slug.replaceAll('-',' '),mode:'insensitive'}},{region:{equals:slug.replaceAll('-',' '),mode:'insensitive'}}]}});if(!p)notFound();if(p.city.toLowerCase().replaceAll(' ','-')===slug){query.city=p.city;locationName=p.city;}else{query.region=p.region;locationName=p.region;}}
- if(slug&&key!=='locations')notFound();
- const where=filters(query);const page=pageNumber(query.page);const size=9;const orderBy:Prisma.PropertyOrderByWithRelationInput=query.sort==='priceAsc'?{price:'asc'}:query.sort==='priceDesc'?{price:'desc'}:{createdAt:'desc'};
- const [total,properties,allCities,allRegions]=await Promise.all([db.property.count({where}),db.property.findMany({where,orderBy:[orderBy,{id:'asc'}],skip:(page-1)*size,take:size}),db.property.findMany({where:{status:{in:[...publicStatuses]}},distinct:['city'],select:{city:true}}),db.property.findMany({where:{status:{in:[...publicStatuses]}},distinct:['region'],select:{region:true}})]);
- function url(patch:Query){const s=new URLSearchParams();Object.entries({...query,...patch}).forEach(([k,v])=>{if(v)s.set(k,v);});return `${href(l,'catalog')}?${s}`;}
- const points=properties.filter(p=>p.latitude!==null&&p.longitude!==null).map(p=>({title:translation(p.translations,l).title,lat:p.latitude!,lng:p.longitude!,url:href(l,'catalog',p.slug),demo:p.demo}));
- return <><PageHead l={l} title={locationName?`${d.catalog} — ${locationName}`:d[key]} description={d.featuredIntro}/><section className="container section" style={{paddingTop:0}}><Filters l={l} q={query} cities={allCities.map(c=>c.city)} regions={allRegions.map(c=>c.region)}/><div className="results-toolbar"><p>{total} {d.results}</p><div className="view-toggle"><Link className={query.view!=='map'?'active':''} href={url({view:'list'})}>{d.list}</Link><Link className={query.view==='map'?'active':''} href={url({view:'map'})}>{d.map}</Link></div></div>{query.view==='map'?<MapView l={l} points={points}/>:properties.length?<div className="property-grid">{properties.map(p=><PropertyCard key={p.id} property={p} l={l}/>)}</div>:<p className="empty">{d.empty}</p>}<nav className="pagination" aria-label="Pagination">{page>1&&<Link className="button outline" href={url({page:String(page-1)})}>{d.previous}</Link>}<span>{page} / {Math.max(1,Math.ceil(total/size))}</span>{page*size<total&&<Link className="button outline" href={url({page:String(page+1)})}>{d.next}</Link>}</nav><p className="demo-notice">{d.notice}</p>{key==='locations'&&!slug&&<div className="location-links">{[...allCities.map(c=>c.city),...allRegions.map(c=>c.region)].map(city=><Link key={city} href={href(l,'locations',city.toLowerCase().replaceAll(' ','-'))}>{city} ↗</Link>)}</div>}</section></>;
-}
-async function Detail({l,slug}:{l:Locale;slug:string}){
- const p=await visibleProperty(slug);if(!p)notFound();const d=dictionaries[l];const t=translation(p.translations,l);
- const similar=await db.property.findMany({where:{status:{in:[...publicStatuses]},id:{not:p.id},transaction:p.transaction},take:3,orderBy:{updatedAt:'desc'}});
- const data={'@context':'https://schema.org','@type':'RealEstateListing',name:t.title,description:t.description,datePosted:p.createdAt.toISOString(),url:new URL(href(l,'catalog',p.slug),siteUrl()).href,image:p.images.map(v=>new URL(v,siteUrl()).href),...(p.demo?{}:{offers:{'@type':'Offer',price:p.price,priceCurrency:'EUR',availability:p.status==='PUBLISHED'?'https://schema.org/InStock':'https://schema.org/OutOfStock'}})};
- return <><section className="container page-head"><nav className="breadcrumbs" aria-label="Breadcrumb"><Link href={href(l)}>{d.home}</Link><span>/</span><Link href={href(l,'catalog')}>{d.catalog}</Link><span>/</span><span>{p.city}</span></nav><div className="detail-head"><div><div className="eyebrow">{label(p.transaction,l)} · {label(p.status,l)}{p.demo?' · DEMO':''}</div><h1>{t.title}</h1><p className="detail-location"><Icon name="pin"/>{p.demo?`${p.city} · ${d.demo}`:p.address}</p></div><div className="detail-price">{money(p.price,l)}{p.transaction==='RENT'&&<small> / {l==='sk'?'mes.':l==='uk'?'міс.':'mo.'}</small>}</div></div></section><section className="container"><div className="detail-layout"><div><Gallery images={p.images} title={t.title}/><article className="detail-copy"><h2>{d.overview}</h2><div className="prose">{t.description}</div><h2>{d.features}</h2><dl className="spec-table">{[[d.area,`${p.area} m²`],[d.rooms,p.rooms],[d.type,label(p.type,l)],[d.condition,label(p.condition,l)],[d.city,p.city],[d.region,p.region],[d.address,p.demo?'DEMO — '+p.city:p.address]].map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>{[p.videoUrl,p.tourUrl,p.floorPlan,p.brochure].some(Boolean)&&<><h2>{d.media}</h2><div className="button-row">{[[p.videoUrl,d.video],[p.tourUrl,d.tour],[p.floorPlan,d.plan],[p.brochure,d.brochure]].map(([url,title])=>url&&<a key={title} className="button outline" href={url} target="_blank" rel="noopener noreferrer">{title} ↗</a>)}</div></>}{p.latitude!==null&&p.longitude!==null&&<><h2>{d.map}</h2><MapView l={l} points={[{title:t.title,lat:p.latitude,lng:p.longitude,url:href(l,'catalog',p.slug),demo:p.demo}]}/></>}</article></div><aside className="agent-panel"><div className="eyebrow">{d.agent}</div><div className="agent-avatar">{p.agent.name.split(' ').map(v=>v[0]).join('').slice(0,2)}</div><h2>{p.agent.name}</h2>{p.demo?<p>{d.noContacts}</p>:<div className="footer-links"><a href={`mailto:${p.agent.email}`}>{p.agent.email}</a>{p.agent.phone&&<a href={`tel:${p.agent.phone.replace(/[^+\d]/g,'')}`}>{p.agent.phone}</a>}</div>}<h3 style={{marginTop:25}}>{d.request}</h3><LeadForm l={l} propertyId={p.id} kind="VIEWING"/></aside></div></section><section className="container section"><div className="section-head"><h2>{d.similar}</h2></div><div className="property-grid">{similar.map(v=><PropertyCard key={v.id} l={l} property={v}/>)}</div></section><script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLd(data)}}/></>;
-}
-async function ContentPage({l,key,slug}:{l:Locale;key:RouteKey;slug?:string}){
- const d=dictionaries[l];const settings=await siteSettings();
- if(slug&&key!=='blog')notFound();
- if(key==='blog'){
- if(slug){const p=await db.content.findFirst({where:{slug,kind:'BLOG',published:true}});if(!p)notFound();const t=translation(p.translations,l);return <><PageHead l={l} title={t.title}/><article className="container section legal" style={{paddingTop:0}}><p className="prose">{t.description}</p><script type="application/ld+json" dangerouslySetInnerHTML={{__html:jsonLd({'@context':'https://schema.org','@type':'BlogPosting',headline:t.title,datePublished:p.createdAt.toISOString(),dateModified:p.updatedAt.toISOString(),inLanguage:l,author:{'@type':'Organization',name:settings.brand}})}}/></article></>;}
- const posts=await db.content.findMany({where:{kind:'BLOG',published:true},orderBy:{createdAt:'desc'}});return <><PageHead l={l} title={d.blog}/><section className="container section" style={{paddingTop:0}}><div className="team-grid">{posts.map(p=>{const t=translation(p.translations,l);return <article className="content-card" key={p.id}><div className="eyebrow">{new Intl.DateTimeFormat(l).format(p.createdAt)}</div><h2><Link href={href(l,'blog',p.slug)}>{t.title}</Link></h2><p>{t.description.slice(0,180)}…</p><Link href={href(l,'blog',p.slug)} className="text-link">{d.detail}<Icon name="arrow"/></Link></article>;})}</div></section></>;
- }
- const override=await db.content.findFirst({where:{slug:key,kind:'PAGE',published:true}});const t=override?translation(override.translations,l):null;
- if(['privacy','cookies','terms'].includes(key))return <><PageHead l={l} title={t?.title||d[key]}/><article className="container section legal" style={{paddingTop:0}}><div className="draft-warning">{d.legalDraft}</div><p className="prose">{t?.description||legalCopy[l][key]}</p></article></>;
- if(key==='team'){const agents=await db.user.findMany({where:{active:true},select:{id:true,name:true,bio:true,avatar:true},orderBy:{name:'asc'}});return <><PageHead l={l} title={t?.title||d.team} description={d.trustBody}/><section className="container section" style={{paddingTop:0}}><div className="team-grid">{agents.map(a=><article className="team-card" key={a.id}><div className="agent-avatar">{a.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div><h2>{a.name}</h2><p>{translation(a.bio,l).description||d.noContacts}</p><p className="demo-notice">{d.noContacts}</p><Link className="text-link" href={href(l,'contact')}>{d.contact} ↗</Link></article>)}</div></section></>;}
- if(key==='contact'||key==='valuation')return <><PageHead l={l} title={t?.title||d[key]} description={t?.description||d.ctaBody}/><section className="container section" style={{paddingTop:0}}><div className="content-grid"><div><h2>{d.cta}</h2><p style={{margin:'25px 0'}}>{d.trustBody}</p><div className="footer-links"><span>{settings.address}</span>{!settings.email.endsWith('.invalid')&&<a href={`mailto:${settings.email}`}>{settings.email}</a>}{settings.phone&&<a href={`tel:${settings.phone.replace(/[^+\d]/g,'')}`}>{settings.phone}</a>}</div><p className="demo-notice">{d.notice}</p></div><div className="content-card"><LeadForm l={l} kind={key==='valuation'?'VALUATION':'CONSULTATION'}/></div></div></section></>;
- if(key==='services')return <><PageHead l={l} title={t?.title||d.services} description={t?.description||d.trustBody}/><section className="container section"><Services l={l}/></section><section className="container section" style={{paddingTop:0}}><div className="content-card"><LeadForm l={l}/></div></section></>;
- return <><PageHead l={l} title={t?.title||d.about}/><section className="container section" style={{paddingTop:0}}><div className="story"><div className="story-image"><Image src="/images/living.webp" alt={d.about} fill sizes="(max-width:800px) 100vw, 45vw"/></div><div className="story-copy"><h2>{d.trustTitle}</h2><div className="prose" style={{margin:'25px 0'}}>{t?.description||aboutCopy[l]}</div><div className="button-row"><Link href={href(l,'team')} className="button">{d.team}<Icon name="arrow"/></Link><Link href={href(l,'contact')} className="button outline">{d.contact}</Link></div></div></div></section></>;
-}
-async function Footer({l}:{l:Locale}){const d=dictionaries[l];const s=await siteSettings();return <footer className="footer"><div className="container"><div className="footer-top"><div className="footer-brand"><Link href={href(l)} className="brand">{s.brand}<span className="brand-dot">.</span></Link><p>{d.footer}</p><p>{s.address}</p></div><div><h4>{d.catalog}</h4><div className="footer-links">{(['sale','rent','new','commercial'] as RouteKey[]).map(k=><Link href={href(l,k)} key={k}>{d[k]}</Link>)}</div></div><div><h4>{d.about}</h4><div className="footer-links">{(['team','services','blog','contact'] as RouteKey[]).map(k=><Link href={href(l,k)} key={k}>{d[k]}</Link>)}</div></div><div><h4>{d.contact}</h4><div className="footer-links">{!s.email.endsWith('.invalid')&&<a href={`mailto:${s.email}`}>{s.email}</a>}{s.phone&&<a href={`tel:${s.phone.replace(/[^+\d]/g,'')}`}>{s.phone}</a>}<Link href={href(l,'valuation')}>{d.valuation} ↗</Link><Link href="/admin">{l==='sk'?'Prihlásenie tímu':l==='uk'?'Вхід для команди':'Team sign in'} ↗</Link></div></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} {s.brand} · DEMO</span><div className="button-row">{(['privacy','cookies','terms'] as RouteKey[]).map(k=><Link href={href(l,k)} key={k}>{d[k]}</Link>)}</div></div></div></footer>;}

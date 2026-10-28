@@ -1,34 +1,359 @@
-import 'dotenv/config';
-import { randomBytes } from 'node:crypto';
-import { hash } from 'bcryptjs';
-import { db } from '../src/lib/db';
-const description={sk:'DEMO — ilustračná nehnuteľnosť, nejde o skutočný inzerát. Adresa a poloha sú orientačné na úrovni mesta.\n\nSvetlý, premyslene navrhnutý priestor s prirodzenými materiálmi, otvorenou dennou zónou a pokojnou atmosférou. Veľké okná prinášajú dostatok denného svetla. Fotografia je ilustračná, vytvorená pomocou AI; nejde o fotografiu skutočnej ponuky.\n\nTento záznam slúži na predvedenie vyhľadávania, galérie a dopytového formulára.',uk:'DEMO — ілюстративний об’єкт, не реальна пропозиція. Адреса й координати наведені лише на рівні міста.\n\nСвітлий простір із природними матеріалами, відкритою вітальнею та спокійною атмосферою. Великі вікна наповнюють кімнати денним світлом. Ілюстрацію створено за допомогою ШІ; це не фото реального об’єкта.\n\nЗапис демонструє пошук, галерею й форму заявки.',en:'DEMO — an illustrative property, not a real listing. Address and coordinates indicate only the city.\n\nA light-filled space with natural materials, an open living area and a calm atmosphere. Generous windows bring in daylight. The illustration is AI-generated and does not depict an actual listing.\n\nThis record demonstrates search, the gallery and the inquiry form.'};
-async function main(){
- await db.settings.upsert({where:{id:'site'},create:{id:'site'},update:{}});
- const agents=[];
- for(let i=1;i<=3;i++)agents.push(await db.user.upsert({where:{email:`agent${i}@example.invalid`},create:{email:`agent${i}@example.invalid`,name:`DEMO Agent ${String.fromCharCode(64+i)}`,passwordHash:await hash(randomBytes(32).toString('hex'),12),role:'AGENT',bio:{sk:{title:'DEMO profil',description:'Ilustračný profil agenta. Nejde o skutočnú osobu.'},uk:{title:'DEMO профіль',description:'Ілюстративний профіль. Це не реальна особа.'},en:{title:'DEMO profile',description:'Illustrative agent profile, not a real person.'}}},update:{}}));
- const records=[
- ['svetly-byt-bratislava','Svetlý byt s mestským charakterom','Світла квартира з міським характером','Light-filled city apartment','Bratislava','Bratislavský kraj','APARTMENT','SALE','NEW',289000,84,3,48.1486,17.1077],
- ['rodinny-dom-trnava','Dom pre pokojné rána','Будинок для спокійних ранків','A home for slower mornings','Trnava','Trnavský kraj','HOUSE','SALE','RENOVATED',419000,165,5,48.3774,17.5872],
- ['apartman-kosice','Mestský apartmán s eleganciou','Елегантні міські апартаменти','An elegant urban apartment','Košice','Košický kraj','APARTMENT','RENT','NEW',950,62,2,48.7164,21.2611],
- ['byt-zilina','Priestor pre nový začiatok','Простір для нового початку','Space for a fresh start','Žilina','Žilinský kraj','APARTMENT','SALE','ORIGINAL',179000,70,3,49.2232,18.7394],
- ['kancelaria-bratislava','Pracovný priestor s perspektívou','Офіс із перспективою','Workspace with perspective','Bratislava','Bratislavský kraj','COMMERCIAL','RENT','RENOVATED',1500,120,4,48.1486,17.1077],
- ['novostavba-nitra','Moderné bývanie pri zeleni','Сучасне житло біля зелені','Modern living by green spaces','Nitra','Nitriansky kraj','HOUSE','SALE','NEW',345000,132,4,48.3064,18.0764],
- ['pozemok-trencin','Miesto pre vaše plány','Місце для ваших планів','A place for your plans','Trenčín','Trenčiansky kraj','LAND','SALE','ORIGINAL',125000,720,0,48.8945,18.0444],
- ['byt-presov','Útulný byt v meste','Затишна міська квартира','A welcoming city apartment','Prešov','Prešovský kraj','APARTMENT','RENT','RENOVATED',650,54,2,48.9984,21.2339],
- ['dom-banska-bystrica','Dom s priestorom pre rodinu','Дім із простором для родини','Room for the whole family','Banská Bystrica','Banskobystrický kraj','HOUSE','SALE','NEW',379000,180,5,48.7363,19.1462],
- ['byt-bratislava-terasa','Byt s výnimočnou atmosférou','Квартира з особливою атмосферою','An apartment with atmosphere','Bratislava','Bratislavský kraj','APARTMENT','SALE','RENOVATED',329000,96,3,48.1486,17.1077],
- ['atelier-kosice','Ateliér pre nové nápady','Ательє для нових ідей','An atelier for new ideas','Košice','Košický kraj','COMMERCIAL','SALE','NEW',199000,90,2,48.7164,21.2611],
- ['byt-trnava-prenajom','Svetlý priestor na prenájom','Світла квартира в оренду','A bright space to rent','Trnava','Trnavský kraj','APARTMENT','RENT','NEW',780,65,2,48.3774,17.5872],
- ] as const;
- for(const [i,r] of records.entries()){
- const [slug,sk,uk,en,city,region,type,transaction,condition,price,area,rooms,latitude,longitude]=r;
- await db.property.upsert({where:{slug},create:{slug,translations:{sk:{title:sk,description:description.sk},uk:{title:uk,description:description.uk},en:{title:en,description:description.en}},city,region,address:`DEMO — ${city}, bez presnej adresy`,type,transaction,condition,price,area,rooms,latitude,longitude,status:i===9?'RESERVED':'PUBLISHED',demo:true,featured:i<3,images:['/images/living.webp','/images/detail.webp','/images/window.webp'],agentId:agents[i%3].id},update:{}});
- }
- const posts=[['priprava-predaja','Ako pripraviť nehnuteľnosť na predaj','Як підготувати нерухомість до продажу','Preparing your property for sale'],['sprievodca-prenajmom','Na čo myslieť pri prenájme','Що врахувати під час оренди','What to consider when renting'],['hodnota-nehnutelnosti','Čo ovplyvňuje hodnotu nehnuteľnosti','Що впливає на вартість нерухомості','What shapes a property’s value']];
- for(const [slug,sk,uk,en] of posts)await db.content.upsert({where:{slug},create:{slug,kind:'BLOG',published:true,translations:{sk:{title:sk,description:'DEMO redakčný obsah.\n\nZačnite kontrolou dokumentácie, jasným rozpočtom a realistickým časovým plánom. Overte právny stav nehnuteľnosti, vlastníctvo a prípadné ťarchy. Kvalitná prezentácia má byť presná a transparentná.\n\nPred rozhodnutím sa poraďte s odborníkom. Tento text je všeobecný a nenahrádza právne ani finančné poradenstvo.'},uk:{title:uk,description:'DEMO редакційний матеріал.\n\nПочніть із перевірки документів, бюджету та реалістичного графіка. Перевірте правовий статус, власність і можливі обтяження. Якісна презентація має бути точною й прозорою.\n\nПорадьтеся з фахівцем. Матеріал не замінює юридичну чи фінансову консультацію.'},en:{title:en,description:'DEMO editorial content.\n\nStart with document checks, a clear budget and a realistic timeline. Verify legal status, ownership and any encumbrances. A good presentation should be accurate and transparent.\n\nConsult a professional before deciding. This general content is not legal or financial advice.'}}},update:{}});
- const email=process.env.SEED_ADMIN_EMAIL?.toLowerCase();const password=process.env.SEED_ADMIN_PASSWORD;
- if(email&&password){if(password.length<12)throw new Error('SEED_ADMIN_PASSWORD must be at least 12 characters');await db.user.upsert({where:{email},create:{email,name:'Administrator',role:'ADMIN',passwordHash:await hash(password,12)},update:{}});console.log('Initial admin ensured (existing passwords are never overwritten).');}else console.log('No admin credentials supplied; no admin account created.');
- console.log('Demo seed complete: 12 clearly marked properties, 3 fictional agents, 3 articles.');
+import "dotenv/config";
+import { randomBytes } from "node:crypto";
+import { hash } from "bcryptjs";
+import { db } from "../src/lib/db";
+const description = {
+  sk: "DEMO — ilustračná nehnuteľnosť, nejde o skutočný inzerát. Adresa a poloha sú orientačné na úrovni mesta.\n\nSvetlý, premyslene navrhnutý priestor s prirodzenými materiálmi, otvorenou dennou zónou a pokojnou atmosférou. Veľké okná prinášajú dostatok denného svetla. Fotografia je ilustračná, vytvorená pomocou AI; nejde o fotografiu skutočnej ponuky.\n\nTento záznam slúži na predvedenie vyhľadávania, galérie a dopytového formulára.",
+  uk: "DEMO — ілюстративний об’єкт, не реальна пропозиція. Адреса й координати наведені лише на рівні міста.\n\nСвітлий простір із природними матеріалами, відкритою вітальнею та спокійною атмосферою. Великі вікна наповнюють кімнати денним світлом. Ілюстрацію створено за допомогою ШІ; це не фото реального об’єкта.\n\nЗапис демонструє пошук, галерею й форму заявки.",
+  en: "DEMO — an illustrative property, not a real listing. Address and coordinates indicate only the city.\n\nA light-filled space with natural materials, an open living area and a calm atmosphere. Generous windows bring in daylight. The illustration is AI-generated and does not depict an actual listing.\n\nThis record demonstrates search, the gallery and the inquiry form.",
+};
+async function main() {
+  await db.settings.upsert({
+    where: { id: "site" },
+    create: { id: "site" },
+    update: {},
+  });
+  const agents = [];
+  for (let i = 1; i <= 3; i++)
+    agents.push(
+      await db.user.upsert({
+        where: { email: `agent${i}@example.invalid` },
+        create: {
+          email: `agent${i}@example.invalid`,
+          name: `DEMO Agent ${String.fromCharCode(64 + i)}`,
+          passwordHash: await hash(randomBytes(32).toString("hex"), 12),
+          role: "AGENT",
+          bio: {
+            sk: {
+              title: "DEMO profil",
+              description: "Ilustračný profil agenta. Nejde o skutočnú osobu.",
+            },
+            uk: {
+              title: "DEMO профіль",
+              description: "Ілюстративний профіль. Це не реальна особа.",
+            },
+            en: {
+              title: "DEMO profile",
+              description: "Illustrative agent profile, not a real person.",
+            },
+          },
+        },
+        update: {},
+      }),
+    );
+  const records = [
+    [
+      "svetly-byt-bratislava",
+      "Svetlý byt s mestským charakterom",
+      "Світла квартира з міським характером",
+      "Light-filled city apartment",
+      "Bratislava",
+      "Bratislavský kraj",
+      "APARTMENT",
+      "SALE",
+      "NEW",
+      289000,
+      84,
+      3,
+      48.1486,
+      17.1077,
+    ],
+    [
+      "rodinny-dom-trnava",
+      "Dom pre pokojné rána",
+      "Будинок для спокійних ранків",
+      "A home for slower mornings",
+      "Trnava",
+      "Trnavský kraj",
+      "HOUSE",
+      "SALE",
+      "RENOVATED",
+      419000,
+      165,
+      5,
+      48.3774,
+      17.5872,
+    ],
+    [
+      "apartman-kosice",
+      "Mestský apartmán s eleganciou",
+      "Елегантні міські апартаменти",
+      "An elegant urban apartment",
+      "Košice",
+      "Košický kraj",
+      "APARTMENT",
+      "RENT",
+      "NEW",
+      950,
+      62,
+      2,
+      48.7164,
+      21.2611,
+    ],
+    [
+      "byt-zilina",
+      "Priestor pre nový začiatok",
+      "Простір для нового початку",
+      "Space for a fresh start",
+      "Žilina",
+      "Žilinský kraj",
+      "APARTMENT",
+      "SALE",
+      "ORIGINAL",
+      179000,
+      70,
+      3,
+      49.2232,
+      18.7394,
+    ],
+    [
+      "kancelaria-bratislava",
+      "Pracovný priestor s perspektívou",
+      "Офіс із перспективою",
+      "Workspace with perspective",
+      "Bratislava",
+      "Bratislavský kraj",
+      "COMMERCIAL",
+      "RENT",
+      "RENOVATED",
+      1500,
+      120,
+      4,
+      48.1486,
+      17.1077,
+    ],
+    [
+      "novostavba-nitra",
+      "Moderné bývanie pri zeleni",
+      "Сучасне житло біля зелені",
+      "Modern living by green spaces",
+      "Nitra",
+      "Nitriansky kraj",
+      "HOUSE",
+      "SALE",
+      "NEW",
+      345000,
+      132,
+      4,
+      48.3064,
+      18.0764,
+    ],
+    [
+      "pozemok-trencin",
+      "Miesto pre vaše plány",
+      "Місце для ваших планів",
+      "A place for your plans",
+      "Trenčín",
+      "Trenčiansky kraj",
+      "LAND",
+      "SALE",
+      "ORIGINAL",
+      125000,
+      720,
+      0,
+      48.8945,
+      18.0444,
+    ],
+    [
+      "byt-presov",
+      "Útulný byt v meste",
+      "Затишна міська квартира",
+      "A welcoming city apartment",
+      "Prešov",
+      "Prešovský kraj",
+      "APARTMENT",
+      "RENT",
+      "RENOVATED",
+      650,
+      54,
+      2,
+      48.9984,
+      21.2339,
+    ],
+    [
+      "dom-banska-bystrica",
+      "Dom s priestorom pre rodinu",
+      "Дім із простором для родини",
+      "Room for the whole family",
+      "Banská Bystrica",
+      "Banskobystrický kraj",
+      "HOUSE",
+      "SALE",
+      "NEW",
+      379000,
+      180,
+      5,
+      48.7363,
+      19.1462,
+    ],
+    [
+      "byt-bratislava-terasa",
+      "Byt s výnimočnou atmosférou",
+      "Квартира з особливою атмосферою",
+      "An apartment with atmosphere",
+      "Bratislava",
+      "Bratislavský kraj",
+      "APARTMENT",
+      "SALE",
+      "RENOVATED",
+      329000,
+      96,
+      3,
+      48.1486,
+      17.1077,
+    ],
+    [
+      "atelier-kosice",
+      "Ateliér pre nové nápady",
+      "Ательє для нових ідей",
+      "An atelier for new ideas",
+      "Košice",
+      "Košický kraj",
+      "COMMERCIAL",
+      "SALE",
+      "NEW",
+      199000,
+      90,
+      2,
+      48.7164,
+      21.2611,
+    ],
+    [
+      "byt-trnava-prenajom",
+      "Svetlý priestor na prenájom",
+      "Світла квартира в оренду",
+      "A bright space to rent",
+      "Trnava",
+      "Trnavský kraj",
+      "APARTMENT",
+      "RENT",
+      "NEW",
+      780,
+      65,
+      2,
+      48.3774,
+      17.5872,
+    ],
+  ] as const;
+  for (const [i, r] of records.entries()) {
+    const [
+      slug,
+      sk,
+      uk,
+      en,
+      city,
+      region,
+      type,
+      transaction,
+      condition,
+      price,
+      area,
+      rooms,
+      latitude,
+      longitude,
+    ] = r;
+    await db.property.upsert({
+      where: { slug },
+      create: {
+        slug,
+        translations: {
+          sk: { title: sk, description: description.sk },
+          uk: { title: uk, description: description.uk },
+          en: { title: en, description: description.en },
+        },
+        city,
+        region,
+        address: `DEMO — ${city}, bez presnej adresy`,
+        type,
+        transaction,
+        condition,
+        price,
+        area,
+        rooms,
+        latitude,
+        longitude,
+        status: i === 9 ? "RESERVED" : "PUBLISHED",
+        demo: true,
+        featured: i < 3,
+        images: [
+          "/images/living.webp",
+          "/images/detail.webp",
+          "/images/window.webp",
+        ],
+        agentId: agents[i % 3].id,
+      },
+      update: {},
+    });
+  }
+  const posts = [
+    [
+      "priprava-predaja",
+      "Ako pripraviť nehnuteľnosť na predaj",
+      "Як підготувати нерухомість до продажу",
+      "Preparing your property for sale",
+    ],
+    [
+      "sprievodca-prenajmom",
+      "Na čo myslieť pri prenájme",
+      "Що врахувати під час оренди",
+      "What to consider when renting",
+    ],
+    [
+      "hodnota-nehnutelnosti",
+      "Čo ovplyvňuje hodnotu nehnuteľnosti",
+      "Що впливає на вартість нерухомості",
+      "What shapes a property’s value",
+    ],
+  ];
+  for (const [slug, sk, uk, en] of posts)
+    await db.content.upsert({
+      where: { slug },
+      create: {
+        slug,
+        kind: "BLOG",
+        published: true,
+        translations: {
+          sk: {
+            title: sk,
+            description:
+              "DEMO redakčný obsah.\n\nZačnite kontrolou dokumentácie, jasným rozpočtom a realistickým časovým plánom. Overte právny stav nehnuteľnosti, vlastníctvo a prípadné ťarchy. Kvalitná prezentácia má byť presná a transparentná.\n\nPred rozhodnutím sa poraďte s odborníkom. Tento text je všeobecný a nenahrádza právne ani finančné poradenstvo.",
+          },
+          uk: {
+            title: uk,
+            description:
+              "DEMO редакційний матеріал.\n\nПочніть із перевірки документів, бюджету та реалістичного графіка. Перевірте правовий статус, власність і можливі обтяження. Якісна презентація має бути точною й прозорою.\n\nПорадьтеся з фахівцем. Матеріал не замінює юридичну чи фінансову консультацію.",
+          },
+          en: {
+            title: en,
+            description:
+              "DEMO editorial content.\n\nStart with document checks, a clear budget and a realistic timeline. Verify legal status, ownership and any encumbrances. A good presentation should be accurate and transparent.\n\nConsult a professional before deciding. This general content is not legal or financial advice.",
+          },
+        },
+      },
+      update: {},
+    });
+  const email = process.env.SEED_ADMIN_EMAIL?.toLowerCase();
+  const password = process.env.SEED_ADMIN_PASSWORD;
+  if (email && password) {
+    if (password.length < 12)
+      throw new Error("SEED_ADMIN_PASSWORD must be at least 12 characters");
+    await db.user.upsert({
+      where: { email },
+      create: {
+        email,
+        name: "Administrator",
+        role: "ADMIN",
+        passwordHash: await hash(password, 12),
+      },
+      update: {},
+    });
+    console.log(
+      "Initial admin ensured (existing passwords are never overwritten).",
+    );
+  } else
+    console.log("No admin credentials supplied; no admin account created.");
+  console.log(
+    "Demo seed complete: 12 clearly marked properties, 3 fictional agents, 3 articles.",
+  );
 }
-main().finally(()=>db.$disconnect());
+main().finally(() => db.$disconnect());
