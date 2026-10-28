@@ -1,0 +1,133 @@
+generator client {
+ provider = "prisma-client-js"
+ engineType = "client"
+ output = "../node_modules/.prisma/client"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+}
+enum Role {
+ ADMIN
+ MANAGER
+ AGENT
+}
+enum PropertyStatus {
+ DRAFT
+ PUBLISHED
+ RESERVED
+ SOLD
+ RENTED
+ ARCHIVED
+}
+enum LeadStatus {
+ NEW
+ IN_PROGRESS
+ CLOSED
+}
+model User {
+ id String @id @default(cuid())
+ email String @unique
+ name String
+ passwordHash String
+ role Role @default(AGENT)
+ active Boolean @default(true)
+ bio Json @default("{}")
+ phone String?
+ avatar String?
+ properties Property[]
+ leads Lead[]
+ sessions Session[]
+ createdAt DateTime @default(now())
+}
+model Session {
+ id String @id
+ userId String
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ expiresAt DateTime
+ createdAt DateTime @default(now())
+ @@index([expiresAt])
+}
+model Property {
+ id String @id @default(cuid())
+ slug String @unique
+ translations Json
+ city String
+ region String
+ address String
+ type String
+ transaction String
+ condition String
+ price Int
+ area Float
+ rooms Int
+ status PropertyStatus @default(DRAFT)
+ demo Boolean @default(true)
+ featured Boolean @default(false)
+ latitude Float?
+ longitude Float?
+ images String[]
+ videoUrl String?
+ tourUrl String?
+ floorPlan String?
+ brochure String?
+ seo Json @default("{}")
+ agentId String
+ agent User @relation(fields: [agentId], references: [id])
+ leads Lead[]
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([status, city, transaction])
+}
+model Lead {
+ id String @id @default(cuid())
+ name String
+ email String
+ phone String?
+ message String
+ kind String
+ locale String
+ consentAt DateTime
+ privacyVersion String @default("2026-10-draft")
+ status LeadStatus @default(NEW)
+ agentId String?
+ agent User? @relation(fields: [agentId], references: [id])
+ propertyId String?
+ property Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+ notes String @default("")
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([agentId, status])
+}
+model Content {
+ id String @id @default(cuid())
+ slug String @unique
+ kind String
+ translations Json
+ published Boolean @default(false)
+ seo Json @default("{}")
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
+model Settings {
+ id String @id @default("site")
+ brand String @default("DOMOV")
+ email String @default("hello@example.invalid")
+ phone String @default("")
+ address String @default("Slovensko — DEMO")
+ retentionDays Int @default(180)
+}
+model AuditLog {
+ id String @id @default(cuid())
+ actorId String
+ action String
+ resource String
+ resourceId String
+ createdAt DateTime @default(now())
+}
+model RateLimit {
+ key String @id
+ count Int @default(1)
+ expiresAt DateTime
+ @@index([expiresAt])
+}

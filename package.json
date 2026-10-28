@@ -1,0 +1,66 @@
+{
+  "name": "realitna-agentura",
+  "version": "1.0.0",
+  "description": "Website for a real estate agency in Slovakia.",
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0",
+    "build": "npm run db:generate && next build",
+    "start": "next start --hostname 0.0.0.0",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "db:generate": "node --import tsx scripts/generate-client.ts",
+    "db:migrate": "node --import tsx scripts/migrate.ts",
+    "db:seed": "node --import tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "data:purge": "node --import tsx scripts/purge.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IvanRealit/realitna-agentura.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/IvanRealit/realitna-agentura/issues"
+  },
+  "homepage": "https://github.com/IvanRealit/realitna-agentura#readme",
+  "dependencies": {
+    "@prisma/adapter-pg": "^6.19.3",
+    "@prisma/client": "^6.19.3",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.13",
+    "next": "^16.4.3",
+    "pg": "^8.23.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "sharp": "^0.35.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@prisma/internals": "^6.19.3",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.3",
+    "prisma": "^6.19.3",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.5"
+  },
+  "private": true,
+  "prisma": {
+    "seed": "node --import tsx prisma/seed.ts"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
