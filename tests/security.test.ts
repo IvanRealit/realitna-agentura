@@ -7,9 +7,19 @@ import {
   canManage,
   hashToken,
   cookieOptions,
+  clientKey,
 } from "../src/lib/security";
 describe("security boundaries", () => {
   afterEach(() => vi.unstubAllEnvs());
+  it("ignores forged forwarding headers unless a trusted proxy is explicitly configured", () => {
+    const req = new Request("http://localhost", {
+      headers: { "x-forwarded-for": "127.12.13.14" },
+    });
+    vi.stubEnv("TRUST_PROXY", "false");
+    expect(clientKey(req)).toBe("shared");
+    vi.stubEnv("TRUST_PROXY", "true");
+    expect(clientKey(req)).toBe("127.12.13.14");
+  });
   it("forces secure cookies for HTTPS even with a mistaken local override", () => {
     vi.stubEnv("SITE_URL", "https://agency.example");
     vi.stubEnv("COOKIE_SECURE", "false");

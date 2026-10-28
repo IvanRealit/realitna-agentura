@@ -51,7 +51,10 @@ const property = (agentId: string, slug: string) => ({
 async function login(email: string) {
   const c = await request.newContext({
     baseURL: base,
-    extraHTTPHeaders: { Origin: base },
+    extraHTTPHeaders: {
+      Origin: base,
+      "x-forwarded-for": `127.${parseInt(suffix.slice(0, 2), 16)}.${parseInt(suffix.slice(2, 4), 16)}.${parseInt(suffix.slice(4, 6), 16)}`,
+    },
   });
   const r = await c.post("/api/auth/login", { data: { email, password } });
   expect(r.status()).toBe(200);
@@ -399,7 +402,9 @@ test("staff editor creates and removes a draft through the browser", async ({
     .fill("A demonstration property created through the actual staff form.");
   await expect(page.getByLabel("Zodpovedný agent")).toHaveValue(adminId);
   await page.getByRole("button", { name: "Uložiť zmeny" }).click();
-  await expect(page.getByRole("status")).toContainText("Zmeny boli uložené.");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Zmeny boli uložené." }),
+  ).toBeVisible();
   const row = page
     .getByRole("row")
     .filter({ hasText: "DEMO browser property" });
