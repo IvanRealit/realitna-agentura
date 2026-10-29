@@ -6,13 +6,13 @@
 
 - E2E має окрему явно задану TEST_DATABASE_URL; remote/prod-like URLs і application DB відхиляються. Власні port/build/media + health run marker перевіряються до fixtures. Test process може довіряти своїм forwarding headers; production ingress повинен їх замінювати. Не відкривати test port в інтернет.
 - Docker build context виключає runtime `data/`, private/backups/ключі, `.env` та кеші. Реальний canary-тест перевірив контекст без копіювання справжніх секретів. Не зберігати секрети в інших tracked-файлах: ignore rules не замінюють secret management.
-- Native lead form використовує POST; PII не переходить у GET query коли JS вимкнено. API перевіряє Origin, ліміти та consent і повертає успіх лише після DB insert.
+- Native lead/login/logout форми використовують POST; PII не переходить у GET query коли JS вимкнено. API перевіряє Origin, ліміти та consent і повертає успіх лише після DB insert.
 - `/uploads` лишається **публічним** media endpoint. Не завантажувати туди KYC, паспорт, договори чи інші приватні документи. Для них потрібен окремий storage і авторизований read/access audit.
 - Всі юридичні тексти/retention/AML/DPH — чернетки до перевірки спеціалістами.
 
 ## Security review backlog
 
-AUD-005/006: central policy + optimistic writes; AUD-007: MFA/recovery, failed login auditing, secret encryption/rotation; AUD-008: explicit dataset mode/seed guards; AUD-010/011/012: typed metadata/MIME errors/404 behavior. Повний backlog в EXISTING_SYSTEM. Неприпустимо вмикати AI відправлення PII або portal/email dispatch без потрібної конфігурації та human approval.
+AUD-005/006: central legacy policy і optimistic property writes реалізовані; branch scope та інші mutable resources ще потребують роботи. AUD-007: MFA/recovery, failed login auditing, secret encryption/rotation; AUD-008: explicit dataset mode/seed guards; AUD-010/011/012: typed metadata/MIME errors/404 behavior. Повний backlog в EXISTING_SYSTEM. Неприпустимо вмикати AI відправлення PII або portal/email dispatch без потрібної конфігурації та human approval.
 
 ## Release blockers
 

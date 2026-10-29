@@ -1,3 +1,5 @@
+> Historical baseline runbook. Current Platform 2.0 status: [feature matrix](FEATURE_MATRIX.md), [test report](TEST_REPORT.md), [deployment gates](DEPLOYMENT.md). Backup/restore and full CRM 2.0 are not implemented.
+
 # Current scope and production prerequisites
 
 The public/catalog/database/staff/lead workflows are implemented and runnable. These are concrete remaining limits, not claims of working integrations:

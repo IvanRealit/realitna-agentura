@@ -25,7 +25,7 @@ For an existing PostgreSQL server, skip Docker and set `DATABASE_URL`. Use a ded
 
 Set `SEED_ADMIN_EMAIL` and a unique `SEED_ADMIN_PASSWORD` of at least 12 characters **in your local `.env` or secure environment settings**, then run `npm run db:seed`. Seed never overwrites an existing user's password. Remove these bootstrap variables after creating the account. There is no public registration or default password. Demo agents have random, undisclosed passwords and `.invalid` contact addresses.
 
-Admin can create/deactivate users, change roles and reset passwords in the workspace. A reset revokes that user's sessions. Self-demotion/deactivation is blocked. Agents can create their own drafts and edit owned records, but cannot publish, change DEMO/featured flags, assign another agent or delete properties. Managers manage properties, content and assigned leads; only Admin manages users, settings, the audit log and lead deletion.
+Admin can create/deactivate users, change roles and reset passwords in the workspace. A reset revokes that user's sessions. Self-demotion/deactivation is blocked. Agents can create their own drafts and edit owned DRAFT/REVIEW records, but cannot publish, change DEMO/featured flags, assign another agent or delete properties. Publish requires REVIEW and the quality gate. Property PATCH/DELETE requires its current version (or quoted If-Match header); stale edits return 409 without overwriting data. Managers manage properties, content and all leads; only Admin manages users, settings, the audit log and lead deletion.
 
 ## Implemented workflow
 
@@ -66,8 +66,14 @@ Tests cover real HTTP/PostgreSQL workflows, no-JavaScript native form submission
 
 ## Configuration and deployment
 
-See [deployment runbook](docs/deployment.md), [architecture](docs/architecture.md), [design system](docs/design-system.md) and [known limits](docs/limitations.md). Environment variables are documented in `.env.example`. Never commit `.env` or real personal data.
+See [deployment runbook](docs/deployment.md), [architecture](docs/architecture.md), [design system](docs/design-system.md) and [known limits](docs/KNOWN_LIMITATIONS.md). Environment variables are documented in `.env.example`. Never commit `.env` or real personal data.
 
 The stable Prisma JS compiler and official `pg` adapter avoid native query-engine downloads. `db:generate` invokes the pinned official Prisma generator through `@prisma/internals`; these versions must be upgraded together. `db:migrate` applies checked-in PostgreSQL SQL in transactions with advisory locking and SHA-256 verification, writing the Prisma-compatible migration ledger. It needs no external binary server. Use this runner consistently; it intentionally supports **transactional PostgreSQL SQL migrations**, not non-transactional operations such as `CREATE INDEX CONCURRENTLY`. Review every migration before production. Standard Prisma tooling is optional and may require network access to `binaries.prisma.sh`.
 
 Legal pages are explicitly **drafts requiring Slovak legal review**. No analytics provider, email delivery service, real business identity or third-party CRM is connected. The environment is suitable for development and staging; production release requires the owner actions in the runbook and explicit approval.
+
+## Operating guides
+
+[User guide (UK)](docs/USER_GUIDE_UK.md) · [Admin guide (UK)](docs/ADMIN_GUIDE_UK.md) · [Database](docs/DATABASE_SCHEMA.md) · [Permissions](docs/security/PERMISSION_MATRIX.md) · [Backup/restore blocker](docs/BACKUP_RESTORE.md) · [Integrations](docs/INTEGRATIONS.md) · [VPS preparation](docs/deployment/VPS_DEPLOYMENT.md).
+
+Platform 2.0 is staged work. Clients/deals/branches/calendar/private documents/finance/AML, MFA and verified off-site backups are not yet implemented; the existing staff workspace is not the full requested CRM.

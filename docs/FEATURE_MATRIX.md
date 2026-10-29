@@ -2,16 +2,16 @@
 
 Стани: **є** — перевірений поточний код; **частково** — явно обмежений workflow; **план** — не реалізовано; **blocked** — потрібні зовнішні налаштування/документація. Повністю готовою платформу 2.0 не називаємо. Baseline `9dae815`; актуальні перевірки — TEST_REPORT.
 
-| Модуль / можливості                                                 | Стан на початку 2.0                         | Цільовий етап           | Залежності / release gate                      |
+| Модуль / можливості                                                 | Поточний стан                               | Цільовий етап           | Залежності / release gate                      |
 | ------------------------------------------------------------------- | ------------------------------------------- | ----------------------- | ---------------------------------------------- |
 | SK/UK/EN сайт, SSR, home/catalog/detail/categories                  | є                                           | 4                       | regression tests                               |
 | URL-фільтри, pagination, сортування                                 | є                                           | 4                       | public DTO/search                              |
 | Карта multi-marker, порівняння, saved searches                      | частково: opt-in single map, favorites only | 4                       | mapping provider, no-JS behavior               |
 | Agent profiles, branches, FAQ/reviews/news                          | частково: team/blog, решти немає            | 4                       | agents/branch schemas, verified content        |
 | CMS текст/SEO/brand/contact                                         | частково                                    | 4                       | banners/menu/logo/theme schemas                |
-| Native POST без JS                                                  | потребує виправлення AUD-004                | 2                       | privacy-safe intake                            |
+| Native POST без JS                                                  | є: native lead/login/logout POST            | 2                       | privacy-safe intake                            |
 | Property CRUD/locale/media/statuses                                 | частково                                    | 2–3                     | review/version/history                         |
-| Manager review, quality checks, concurrency                         | план                                        | 2                       | migration + ownership tests                    |
+| Manager review, quality checks, concurrency                         | є: REVIEW/version/atomic audit              | 2                       | migration + ownership tests                    |
 | Owner/branch/cadastre/floor/energy/currency/contracts               | план                                        | 3                       | clients/branches, private DTO                  |
 | Price history/revisions/comments/duplicate/bulk                     | план                                        | 3                       | event/revision model, versions                 |
 | CSV/XLSX/XML/PDF imports/exports, A4/A5, watermark                  | план                                        | 3–5                     | mapping/preview/jobs/renderer                  |
@@ -55,10 +55,14 @@
 | One VPS app/DB/storage/proxy/HTTPS/restart/monitoring               | частково: image + DB compose                | 10                      | backups, TLS, staging smoke                    |
 | Isolated local staging without paid services                        | план                                        | 2/10                    | separate volumes/ports; loopback only          |
 | CI lint/types/unit/integration/E2E/build/audit                      | є workflow; hosted status unavailable       | 1/9                     | GitHub API/network access                      |
-| Dedicated test DB / build / media fail-closed                       | потребує виправлення AUD-001                | 2                       | guard + isolated PostgreSQL                    |
+| Dedicated test DB / build / media fail-closed                       | є: fail-closed isolated runner              | 2                       | guard + isolated PostgreSQL                    |
 | Feature branch→PR→review→staging→prod approval                      | частково: baseline merged PR #2             | every stage             | API access, protected environment              |
 | Production release backup/rollback/restore validation               | план                                        | 7/10                    | owner approval + verified backup               |
 | Demo 20 properties/5 agents/30 clients/15 leads/10 deals            | частково: 12/3/0/0/0                        | after CRM               | separate demo mode + safe scoped clear         |
 | Full documentation and operating guides                             | старт у цій сесії                           | all                     | keep actual evidence/current limitations       |
 
 Окремі adapters або документація не вважаються працюючою інтеграцією. Scheduled backup, HTTPS та hosted CI не позначаються «є» лише через наявність YAML. Зміни стану виконуються після реальних перевірок.
+
+## Перевірений інкремент цієї сесії
+
+Central legacy policy винесено у modules/access; property writes — modules/properties. Є REVIEW, базовий publication quality gate, version/If-Match conflicts, atomic audit price/status/version metadata. Залишаються тільки три legacy ролі; це не branch scoping. Нижня CRM navigation та 16px mobile controls додані, 8-width regression виконано; real iOS/PWA/offline ще не перевірені. Native lead/login/logout більше не надсилають приватні поля через GET.

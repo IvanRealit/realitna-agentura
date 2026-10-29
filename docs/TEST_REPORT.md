@@ -30,3 +30,18 @@
 ## Ще не перевірено / не реалізовано
 
 Повна seven-role/branch security matrix; client/deal/calendar/document/finance workflows; MFA; encrypted off-site backup та restore drill; disaster recovery; production upgrade/rollback; OAuth/portal/mail/AI providers; hosted CI status; реальний VPS/TLS/DNS. Деталі в FEATURE_MATRIX та KNOWN_LIMITATIONS. Production readiness не підтверджено.
+
+## Property/access/mobile increment — фінальний прогін
+
+- Lint, TypeScript strict: passed; 48 unit tests у 4 файлах passed.
+- Normal production-mode build: passed. Test build `.next-test`: passed.
+- Playwright: **14/14 passed**, 28.6 s, isolated PostgreSQL realitna_test + Chromium. Перевірено server-side ownership, review/quality gates, browser editor Draft→Review→Published→Delete, реальне image upload/read, lead persistence/assignment, native login/logout і lead без JS.
+- Concurrent HTTP PATCH: рівно один 200 та один 409, version +1, рівно один audit запис; stale DELETE не видаляє рядок; PATCH без version повертає 428.
+- Mobile: 320/360/375/390/430/768/1024/1440; home/catalog/dashboard/properties/editor без root overflow і JS errors; нижня навігація та 16px input перевірені.
+- `npm audit --audit-level=high`: found 0 vulnerabilities (стан registry на час перевірки, не гарантія відсутності всіх вразливостей).
+- Additive migration preservation: 12 існуючих test rows та 12 local development DEMO rows збережені, version initialized. Немає destructive migration.
+- Local runtime після normal build/migration: `/api/health` 200 status ok, `/uk` 200, `/admin` 200; loopback only port 3000.
+
+Перші browser прогони виявили помилку exact-name селектора select та shared fixture після worker restart; виправлено role-based selector і незалежний concurrency fixture. Missing-version case відокремлено від invalid publication transition. Фінальний повний прогін успішний, assertions не вимикались. Shell sandbox не дозволяв local socket/server/audit network, повторено через дозволене environment execution.
+
+Hosted CI, повний Docker image rebuild цієї фази, реальний iOS, encrypted backup/restore, full VPS та production не перевірені. Docker context canary — окрема перевірка виключення даних, не full-image runtime test.

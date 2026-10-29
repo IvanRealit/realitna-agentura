@@ -57,3 +57,9 @@ Client/roles/preferences/matching/merge; Deal/pipeline; Branch; Appointment/Task
 ## Межі висновків
 
 Це аудит коду й локальної development-машини. Немає доступу до production, зовнішніх API/угод, DNS/SSL/бухгалтерських або юридичних налаштувань. Немає підтвердження WCAG, повної GDPR/AML відповідності, S3 Object Lock, off-site backup або досягнутого RPO/RTO. Майбутні можливості повинні мати власні тести та докази.
+
+## Результат першого інкременту після baseline
+
+Baseline inventory залишається історичним знімком, а не списком нових файлів. AUD-001/002: test DB isolation і Docker context виправлено та перевірено. AUD-004: native lead POST; додатково виявлена native login GET-передача password усунена через явний POST і перевірена без JavaScript. Runtime robots більше не фіксує build origin. AUD-005/006: централізована compatibility policy та conditional version writes для Property; нові сім ролей/branch scope не реалізовано. AUD-013: нижня mobile navigation і 8-width перевірка поточних екранів. AUD-014: atomic metadata price/status/version для Property, не повна immutable revision/access history. AUD-003 backup/restore та MFA залишаються release blockers.
+
+Additive migration зберегла 12 наявних тестових DEMO рядків (id/slug/price/status/agentId/updatedAt), встановивши version=1. Це migration preservation check, не restore drill. Повний свіжий звіт — TEST_REPORT.

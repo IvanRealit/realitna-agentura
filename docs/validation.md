@@ -1,3 +1,5 @@
+> Historical baseline runbook. Current Platform 2.0 status: [feature matrix](FEATURE_MATRIX.md), [test report](TEST_REPORT.md), [deployment gates](DEPLOYMENT.md). Backup/restore and full CRM 2.0 are not implemented.
+
 # Verification evidence
 
 Validated in the managed development environment with Node.js 24, PostgreSQL 17, Prisma 7.10.1, Next.js 16.4.3 and system Chromium.
