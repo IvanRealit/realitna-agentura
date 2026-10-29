@@ -25,7 +25,7 @@ For an existing PostgreSQL server, skip Docker and set `DATABASE_URL`. Use a ded
 
 Set `SEED_ADMIN_EMAIL` and a unique `SEED_ADMIN_PASSWORD` of at least 12 characters **in your local `.env` or secure environment settings**, then run `npm run db:seed`. Seed never overwrites an existing user's password. Remove these bootstrap variables after creating the account. There is no public registration or default password. Demo agents have random, undisclosed passwords and `.invalid` contact addresses.
 
-Admin can create/deactivate users, change roles and reset passwords in the workspace. A reset revokes that user's sessions. Self-demotion/deactivation is blocked. Agents can create their own drafts and edit owned records, but cannot publish, change DEMO/featured flags, assign another agent or delete properties. Managers manage properties, content and assigned leads; only Admin manages users, settings, the audit log and lead deletion.
+Admin can create/deactivate users, change roles and reset passwords in the workspace. A reset revokes that user's sessions. Self-demotion/deactivation is blocked. Agents can create their own drafts and edit owned DRAFT/REVIEW records, but cannot publish, change DEMO/featured flags, assign another agent or delete properties. Publish requires REVIEW and the quality gate. Property PATCH/DELETE requires its current version (or quoted If-Match header); stale edits return 409 without overwriting data. Managers manage properties, content and all leads; only Admin manages users, settings, the audit log and lead deletion.
 
 ## Implemented workflow
 
@@ -39,28 +39,41 @@ Admin can create/deactivate users, change roles and reset passwords in the works
 
 All 12 seeded properties, 3 fictional agents and 3 articles are demonstrative. Coordinates identify city centers, **not real property locations**. The bundled AI-generated interior and crops are illustrative; repeated imagery is deliberate demo data, not evidence of actual properties.
 
-## Checks
+## Platform 2.0 and architecture
+
+Development continues in this repository as a modular monolith, retaining the public/staff/API boundaries. Read the [audited baseline](docs/audit/EXISTING_SYSTEM.md), [module ownership and architecture](docs/ARCHITECTURE.md), [feature matrix](docs/FEATURE_MATRIX.md), and [staged roadmap](docs/ROADMAP.md). Missing modules are not presented as working CRM features.
+
+## Checks — isolated test database required
 
 ```sh
 npm run lint
 npm run typecheck
 npm test
 npm run build
-# With the production server running:
+# Start only the separate, ephemeral test PostgreSQL service (port 55432):
+docker compose -p realitna-test -f infrastructure/docker/compose.test.yml up -d --wait
+# Set TEST_DATABASE_URL using .env.example or the process environment.
+npm run test:prepare
 npx playwright install chromium
 npm run test:e2e
-# Or let the suite start the already-built server:
-PLAYWRIGHT_START_SERVER=true npm run test:e2e
-# In this cloud image only, use its installed Chromium:
+# In this managed cloud image, use the installed browser:
 PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium npm run test:e2e
 ```
 
-The suite tests real HTTP + PostgreSQL: anonymous/cross-origin rejection, role/ownership boundaries, draft visibility, publication, translation fallback, lead validation/assignment, uploads and session revocation. Chromium covers desktop/mobile browsing, favorites and consent. Reports/screenshots are generated under `playwright-report/` and `test-results/` and are ignored by Git. CI runs the same checks against a fresh PostgreSQL service. When Playwright starts its private server, it acts as trusted ingress with unique test IPs, keeping repeated tests out of the shared development rate-limit bucket. Do not expose that test server publicly.
+`TEST_DATABASE_URL` must name a separate loopback `realitna*_test` database. There is **no fallback** to `DATABASE_URL`; matching application/test targets are rejected even across localhost aliases and different credentials. The runner sets its own port (3101), `.next-test` build, `data/test-uploads`, test environment marker and trusted test ingress. Playwright owns its server and refuses an existing listener. Global setup verifies that the server belongs to this test run and checks the actual database name before fixture writes. Direct `npx playwright test` without the isolation runner is rejected. Never point test configuration at production.
+
+Tests cover real HTTP/PostgreSQL workflows, no-JavaScript native form submission, and existing public/CRM/editor layouts at 320, 360, 375, 390, 430, 768, 1024 and 1440 px. This is not a full WCAG audit or a real iPhone Safari test. Reports under `playwright-report/` and `test-results/` are ignored by Git. Current evidence is in [TEST_REPORT](docs/TEST_REPORT.md). CI provisions a fresh PostgreSQL service and uses the same guarded workflow; a hosted run must be observed before claiming CI is green.
 
 ## Configuration and deployment
 
-See [deployment runbook](docs/deployment.md), [architecture](docs/architecture.md), [design system](docs/design-system.md) and [known limits](docs/limitations.md). Environment variables are documented in `.env.example`. Never commit `.env` or real personal data.
+See [deployment runbook](docs/deployment.md), [architecture](docs/architecture.md), [design system](docs/design-system.md) and [known limits](docs/KNOWN_LIMITATIONS.md). Environment variables are documented in `.env.example`. Never commit `.env` or real personal data.
 
 The stable Prisma JS compiler and official `pg` adapter avoid native query-engine downloads. `db:generate` invokes the pinned official Prisma generator through `@prisma/internals`; these versions must be upgraded together. `db:migrate` applies checked-in PostgreSQL SQL in transactions with advisory locking and SHA-256 verification, writing the Prisma-compatible migration ledger. It needs no external binary server. Use this runner consistently; it intentionally supports **transactional PostgreSQL SQL migrations**, not non-transactional operations such as `CREATE INDEX CONCURRENTLY`. Review every migration before production. Standard Prisma tooling is optional and may require network access to `binaries.prisma.sh`.
 
 Legal pages are explicitly **drafts requiring Slovak legal review**. No analytics provider, email delivery service, real business identity or third-party CRM is connected. The environment is suitable for development and staging; production release requires the owner actions in the runbook and explicit approval.
+
+## Operating guides
+
+[User guide (UK)](docs/USER_GUIDE_UK.md) · [Admin guide (UK)](docs/ADMIN_GUIDE_UK.md) · [Database](docs/DATABASE_SCHEMA.md) · [Permissions](docs/security/PERMISSION_MATRIX.md) · [Backup/restore blocker](docs/BACKUP_RESTORE.md) · [Integrations](docs/INTEGRATIONS.md) · [VPS preparation](docs/deployment/VPS_DEPLOYMENT.md).
+
+Platform 2.0 is staged work. Clients/deals/branches/calendar/private documents/finance/AML, MFA and verified off-site backups are not yet implemented; the existing staff workspace is not the full requested CRM.

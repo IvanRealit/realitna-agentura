@@ -1,9 +1,10 @@
+import { can, isResource } from "@/modules/access/policy";
+import { writeProperty } from "@/modules/properties/service";
 import { db } from "@/lib/db";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import {
   apiError,
-  canManage,
   currentUser,
   HttpError,
   owns,
@@ -11,12 +12,7 @@ import {
   readJson,
   sameOrigin,
 } from "@/lib/security";
-import {
-  contentSchema,
-  propertySchema,
-  settingsSchema,
-  userSchema,
-} from "@/lib/validation";
+import { contentSchema, settingsSchema, userSchema } from "@/lib/validation";
 import type { Prisma } from "@prisma/client";
 type Context = { params: Promise<{ resource: string; id?: string[] }> };
 async function access(req: Request, resource: string, write = false) {
@@ -25,32 +21,23 @@ async function access(req: Request, resource: string, write = false) {
   if (write && !sameOrigin(req)) throw new HttpError(403, "Invalid origin");
   if (!(await rateLimit(`admin:${user.id}`, 300, 60000)))
     throw new HttpError(429, "Try again later");
-  if (
-    ![
-      "properties",
-      "leads",
-      "users",
-      "content",
-      "settings",
-      "audit",
-      "notifications",
-      "agents",
-    ].includes(resource)
-  )
-    throw new HttpError(404, "Unknown resource");
-  if (
-    ["users", "settings", "audit"].includes(resource) &&
-    user.role !== "ADMIN"
-  )
-    throw new HttpError(403, "Admin role required");
-  if (resource === "content" && !canManage(user.role))
-    throw new HttpError(403, "Manager role required");
+  if (!isResource(resource)) throw new HttpError(404, "Unknown resource");
+  const action = !write
+    ? "read"
+    : req.method === "POST"
+      ? "create"
+      : req.method === "DELETE"
+        ? "delete"
+        : "update";
+  if (!can(user.role, resource, action))
+    throw new HttpError(403, "Module permission required");
   return user;
 }
 export async function GET(req: Request, ctx: Context) {
   try {
     const { resource, id } = await ctx.params;
     const user = await access(req, resource);
+    if (id && id.length > 1) throw new HttpError(404, "Unknown route");
     const key = id?.[0];
     let data: unknown;
     if (resource === "agents")
@@ -128,6 +115,7 @@ async function mutate(
 ) {
   try {
     const { resource, id } = await ctx.params;
+    if (id && id.length > 1) throw new HttpError(404, "Unknown route");
     const key = id?.[0];
     const user = await access(req, resource, true);
     if (method !== "POST" && !key && resource !== "settings")
@@ -139,48 +127,21 @@ async function mutate(
     )
       throw new HttpError(405, "Read only");
     const body = method === "DELETE" ? null : await readJson(req);
+    if (resource === "properties") {
+      const result = await writeProperty(
+        user,
+        method,
+        key,
+        body,
+        req.headers.get("if-match"),
+      );
+      return Response.json(result, {
+        status: method === "POST" ? 201 : 200,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
     const result = await db.$transaction(async (tx) => {
       let data: unknown;
-      if (resource === "properties") {
-        const existing = key
-          ? await tx.property.findUnique({ where: { id: key } })
-          : null;
-        if (key && !existing) throw new HttpError(404, "Not found");
-        if (existing && !owns(user.role, user.id, existing.agentId))
-          throw new HttpError(403, "Not your property");
-        if (method === "DELETE") {
-          if (!canManage(user.role))
-            throw new HttpError(403, "Manager role required");
-          data = await tx.property.delete({ where: { id: key } });
-        } else {
-          const v = propertySchema.parse(body);
-          if (user.role === "AGENT") {
-            if (v.agentId !== user.id)
-              throw new HttpError(403, "Cannot assign another agent");
-            if (
-              v.status !== (existing?.status ?? "DRAFT") ||
-              v.featured !== (existing?.featured ?? false) ||
-              v.demo !== (existing?.demo ?? true)
-            )
-              throw new HttpError(
-                403,
-                "Only a manager can change publication, featured or demo status",
-              );
-          }
-          const agent = await tx.user.findFirst({
-            where: { id: v.agentId, active: true },
-          });
-          if (!agent) throw new HttpError(400, "Active agent required");
-          const input = {
-            ...v,
-            translations: v.translations as Prisma.InputJsonValue,
-            seo: (v.seo ?? {}) as Prisma.InputJsonValue,
-          };
-          data = key
-            ? await tx.property.update({ where: { id: key }, data: input })
-            : await tx.property.create({ data: input });
-        }
-      }
       if (resource === "leads") {
         const existing = key
           ? await tx.lead.findUnique({ where: { id: key } })

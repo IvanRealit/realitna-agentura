@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
+const distDir = process.env.NEXT_DIST_DIR ?? ".next";
+if (![".next", ".next-test"].includes(distDir))
+  throw new Error("Unsupported build directory");
 const config: NextConfig = {
+  distDir,
   poweredByHeader: false,
   images: {
     remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }],

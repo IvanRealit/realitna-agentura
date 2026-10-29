@@ -12,6 +12,7 @@ enum Role {
  AGENT
 }
 enum PropertyStatus {
+ REVIEW
  DRAFT
  PUBLISHED
  RESERVED
@@ -49,6 +50,7 @@ model Session {
 }
 model Property {
  id String @id @default(cuid())
+ version Int @default(1)
  slug String @unique
  translations Json
  city String
@@ -118,6 +120,7 @@ model Settings {
 }
 model AuditLog {
  id String @id @default(cuid())
+ metadata Json @default("{}")
  actorId String
  action String
  resource String

@@ -1,0 +1,703 @@
+{
+  "baseline": "9dae815b2cc1e48f8b6ee145c7d8b61e160b6dee",
+  "trackedFiles": 78,
+  "scope": "Tracked files only; no secrets, dependency caches or user data collected.",
+  "files": [
+    {
+      "path": ".dockerignore",
+      "bytes": 105,
+      "sha256": "d0ca0e028b6c6ae0bce78067c5cc8b7770412a73f125ca0787c6961d7860c055"
+    },
+    {
+      "path": ".env.example",
+      "bytes": 577,
+      "sha256": "ec50b0dd003dc37be9646c13d061587783487f91fffb1d598c5a27a0fe87c24e"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "bytes": 1526,
+      "sha256": "d61f4e8ee152dc2d40d8c4484ca3d7312aa5713e531db74263902fe6381f0fde"
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 126,
+      "sha256": "c2945980e43b3df098e20430e3698267ada1dc9027cce9bd393410634d353b60"
+    },
+    {
+      "path": ".prettierignore",
+      "bytes": 75,
+      "sha256": "3ae2571288341de7cb248ba523439e9a52be7fb536da32e81c4fdd690a80d3c9"
+    },
+    {
+      "path": "Dockerfile",
+      "bytes": 1055,
+      "sha256": "12713b45f617ee58c0dea0f4f3e36c447bf6cbe5ba932cc04de27df034d242fe"
+    },
+    {
+      "path": "README.md",
+      "bytes": 6086,
+      "sha256": "266f796f17227ae322dd3298f4bce9f98371c5edf46c216e2257c837406b2c46"
+    },
+    {
+      "path": "compose.yaml",
+      "bytes": 461,
+      "sha256": "f0b4d472331a55fad49ecac657d8a9922db14a294723bcf7a4892ae576c2e156"
+    },
+    {
+      "path": "docs/architecture.md",
+      "bytes": 4474,
+      "sha256": "61deef5deac37d28f7699145ce6869acccd25037551e85cc7ea7774f481c12e5"
+    },
+    {
+      "path": "docs/deployment.md",
+      "bytes": 6243,
+      "sha256": "d604f15cac84181964480158c31188ea9979fe43e557afa3fd5940e10da69c3f"
+    },
+    {
+      "path": "docs/design-system.md",
+      "bytes": 2477,
+      "sha256": "c725d0ba5728e11401900980539407b0da0d4adba7b89713983e996a1723b490"
+    },
+    {
+      "path": "docs/limitations.md",
+      "bytes": 2580,
+      "sha256": "c644f4cb381b05284bb4fdef74022984e604f5ff9da4598848a7cf371d1467a4"
+    },
+    {
+      "path": "docs/screenshots/home-sk-desktop.png",
+      "bytes": 1546542,
+      "sha256": "86e36c13424cf751546a650009a016227b5f69b7422ca3ee35c9bd3f60adaaba"
+    },
+    {
+      "path": "docs/screenshots/home-uk-mobile.png",
+      "bytes": 943720,
+      "sha256": "913e25ae404a5014977e030759983af044c4e6b8bc839cd7a944cd40801de101"
+    },
+    {
+      "path": "docs/validation.md",
+      "bytes": 3675,
+      "sha256": "79c692209db084cec43960ef68ecad9d9e02e66918d1fac29282879a09a72e29"
+    },
+    {
+      "path": "eslint.config.mjs",
+      "bytes": 837,
+      "sha256": "2fa7c9e3e7b787eb08896eaff937d014e5c16af19d7a5f5c96f7a27d320bf6d2",
+      "imports": [
+        "eslint/config",
+        "@eslint/js",
+        "typescript-eslint",
+        "@next/eslint-plugin-next",
+        "eslint-plugin-react-hooks",
+        "globals"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "next-env.d.ts",
+      "bytes": 288,
+      "sha256": "1862ac4bbbc5192d4bf562161df66ea547ed3e67173100656ab606ae9797db2b",
+      "imports": [
+        "./.next/types/routes.d.ts",
+        "./.next/types/root-params.d.ts"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "next.config.ts",
+      "bytes": 1059,
+      "sha256": "f810735375d16ea15c210de2be32935fd6304aebe4cd220549d59bb80e122ab6",
+      "imports": ["next"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 266238,
+      "sha256": "c10334a34023d19c9036f2def3ac5f55ddeb796425bacbc4ab2915e87ccdf5ff"
+    },
+    {
+      "path": "package.json",
+      "bytes": 2062,
+      "sha256": "9d5df6013f2ab10a63bbab118a89da751f3078ebee507d837c4bb80c95d2979f"
+    },
+    {
+      "path": "playwright.config.ts",
+      "bytes": 1188,
+      "sha256": "0f1f0c1f33c74a414ad94c0669f0e0763bc7c84a722e731da9c015a0239eb8e8",
+      "imports": ["node:crypto", "dotenv/config", "@playwright/test"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "postcss.config.mjs",
+      "bytes": 83,
+      "sha256": "b783348d5618047d0f37e12acd15c5a2c5f02809d8711e0764c9cea52750346c",
+      "imports": [],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "prisma.config.ts",
+      "bytes": 428,
+      "sha256": "2e81c92c1ed4688787f7a49455ce5e1a28c4a9659ab8a131cad82367eb3a73fd",
+      "imports": ["dotenv/config", "prisma/config"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "prisma/migrations/202610280001_initial/migration.sql",
+      "bytes": 3972,
+      "sha256": "71a9d85c4b9c27d62879e2461a046f91e4be7c3df6891104cc0e3eca498a746a"
+    },
+    {
+      "path": "prisma/migrations/migration_lock.toml",
+      "bytes": 24,
+      "sha256": "1db17a8d051aa136110736752c5e1f8b7ed92b6ea8e803112fbbe2497047c210"
+    },
+    {
+      "path": "prisma/schema.prisma",
+      "bytes": 2763,
+      "sha256": "2d2a0e3d0ffa989a7d9dde21eee02586f55dedb9cc13d4038fc0c2e0ee5a34f0"
+    },
+    {
+      "path": "prisma/seed.ts",
+      "bytes": 10904,
+      "sha256": "40de7b53c714354dc5266528ce90f92427e5216643084822564b83492cfdeb63",
+      "imports": ["dotenv/config", "node:crypto", "bcryptjs", "../src/lib/db"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["main"]
+    },
+    {
+      "path": "public/images/detail.webp",
+      "bytes": 128108,
+      "sha256": "1bcecf95a8ed0d700adea0f3550a00947cce02a0399aea4fee3db53e0e70387a"
+    },
+    {
+      "path": "public/images/living.png",
+      "bytes": 2713341,
+      "sha256": "1b52305c285d91090857699780d34526792d9247ff52a664babcb6e45f66dc97"
+    },
+    {
+      "path": "public/images/living.webp",
+      "bytes": 227618,
+      "sha256": "f0175103d5629623fd80a1a552a4db09bb7acaf003aa04a169edc58d4728c482"
+    },
+    {
+      "path": "public/images/placeholder.svg",
+      "bytes": 343,
+      "sha256": "8aa91c4df26e0224b4705bf3a541c512e32fbb3cfc9468621b388453bf16e4c3"
+    },
+    {
+      "path": "public/images/window.webp",
+      "bytes": 116846,
+      "sha256": "f9e1953ce4190e078d51da5722139a98363258dd5b6b8a28bce65c5a6b4bf841"
+    },
+    {
+      "path": "scripts/generate-client.ts",
+      "bytes": 642,
+      "sha256": "f0a0327bd53441da3cdd6ee7a2986415bbd0888bc0988de9d3b38b4cf1a296b8",
+      "imports": ["@prisma/internals", "@prisma/client-generator-registry"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "scripts/migrate.ts",
+      "bytes": 2104,
+      "sha256": "02c8648ea319b4a0b27c4a316e1471874a4a4aebbf18ae23583c862f3c8ef088",
+      "imports": ["dotenv/config", "pg", "node:crypto", "node:fs/promises"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "scripts/purge.ts",
+      "bytes": 1054,
+      "sha256": "abe62dd537a85c796d47145649f9bc5a8a8a02c59b4790911cb94b73d3c66bf0",
+      "imports": ["dotenv/config", "../src/lib/db"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "src/app/[locale]/[[...path]]/page.tsx",
+      "bytes": 5958,
+      "sha256": "bef0a38f9b3c476d1aefe2e2dda106756a26fd35187500fc7acaa4521fa3dc45",
+      "imports": [
+        "next/navigation",
+        "next",
+        "@/lib/db",
+        "@/lib/catalog",
+        "@/lib/i18n",
+        "@/lib/site",
+        "@/components/client",
+        "@/components/property-card",
+        "@/lib/properties",
+        "@/components/pages/page-head",
+        "@/components/pages/home",
+        "@/components/pages/catalog",
+        "@/components/pages/detail",
+        "@/components/pages/content-page",
+        "@/components/pages/footer"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["resolve", "generateMetadata", "Page"]
+    },
+    {
+      "path": "src/app/admin/[[...path]]/page.tsx",
+      "bytes": 1520,
+      "sha256": "4212e544f7581ac42a6e33c556975894c953c065ae5447fbe3dd94fccb456581",
+      "imports": [
+        "next/navigation",
+        "@/lib/security",
+        "@/lib/db",
+        "@/lib/site",
+        "@/components/admin"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["generateMetadata", "AdminPage"]
+    },
+    {
+      "path": "src/app/api/admin/[resource]/[[...id]]/route.ts",
+      "bytes": 9811,
+      "sha256": "f7e863083df92814f0fc6139b7e0ac23300d1a3b4d7f7d735a55c91e48398b58",
+      "imports": [
+        "@/lib/db",
+        "bcryptjs",
+        "zod",
+        "@/lib/security",
+        "@/lib/validation",
+        "@prisma/client"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["access", "GET", "mutate"]
+    },
+    {
+      "path": "src/app/api/auth/login/route.ts",
+      "bytes": 1421,
+      "sha256": "5a78a07f52465968fd2c09d6d821b44e20cc6a463ae2484ce60f421cdab36053",
+      "imports": [
+        "bcryptjs",
+        "next/headers",
+        "zod",
+        "@/lib/db",
+        "@/lib/security"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["POST"]
+    },
+    {
+      "path": "src/app/api/auth/logout/route.ts",
+      "bytes": 507,
+      "sha256": "310d6deefc727b750c1b3154b96d608735be320780ccbd02d72acc477d5c06c8",
+      "imports": ["next/headers", "@/lib/db", "@/lib/security"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["POST"]
+    },
+    {
+      "path": "src/app/api/health/route.ts",
+      "bytes": 235,
+      "sha256": "7d9350a32f4e410d2eee32d66a79921ac1adfcb679fda81302a3e41aa4543381",
+      "imports": ["@/lib/db"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["GET"]
+    },
+    {
+      "path": "src/app/api/leads/route.ts",
+      "bytes": 1353,
+      "sha256": "b75d4878e2e4b17a3297939d3c5ae95995dd86c98c3be30791520d652720b7c6",
+      "imports": [
+        "@/lib/db",
+        "@/lib/validation",
+        "@/lib/catalog",
+        "@/lib/security"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["POST"]
+    },
+    {
+      "path": "src/app/api/media/route.ts",
+      "bytes": 2568,
+      "sha256": "16a2ba497637ec6a7af9ed8b9637970502bad51424868ca90e37f50b52b3e088",
+      "imports": [
+        "node:crypto",
+        "node:fs/promises",
+        "node:path",
+        "@/lib/db",
+        "@/lib/security"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["POST"]
+    },
+    {
+      "path": "src/app/error.tsx",
+      "bytes": 406,
+      "sha256": "36a3c05a858b70a4e0d22a960f7350309f80a803a0351c1bac5d4caf04b7fde1",
+      "imports": [],
+      "syntaxDiagnostics": 0,
+      "declarations": ["ErrorPage"]
+    },
+    {
+      "path": "src/app/globals.css",
+      "bytes": 27527,
+      "sha256": "444d5ff5aa1a6016d7c75aa1c39a3265398dca18ca39d4bfb7ef2df4480439eb"
+    },
+    {
+      "path": "src/app/layout.tsx",
+      "bytes": 574,
+      "sha256": "8a19b58d8c9587024d5990fae3bedec5f7966534aa65d0c45414886bc2d0c8c1",
+      "imports": ["next", "next/headers", "./globals.css"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["RootLayout"]
+    },
+    {
+      "path": "src/app/not-found.tsx",
+      "bytes": 578,
+      "sha256": "3bce10715d24b1b25fde4817d739ee7454d397ca417b5314749c9827a24bda90",
+      "imports": ["next/link"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["NotFound"]
+    },
+    {
+      "path": "src/app/robots.ts",
+      "bytes": 284,
+      "sha256": "a3eacc4f6b5e9f70d18a3cdc17c3bf50956e81c021b3f6fc4c3470fd4c60ccc2",
+      "imports": ["next", "@/lib/site"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["robots"]
+    },
+    {
+      "path": "src/app/sitemap.ts",
+      "bytes": 1948,
+      "sha256": "1049f12cf6aaf9b41043862b3eab578470588d3078e0a0c355b939381cef843c",
+      "imports": ["next", "@/lib/db", "@/lib/i18n", "@/lib/site"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["sitemap"]
+    },
+    {
+      "path": "src/app/uploads/[name]/route.ts",
+      "bytes": 822,
+      "sha256": "a195ef962b31b22332da85c1f8a8ff0d87250db3e861aa2c9e056e34c0d4f890",
+      "imports": ["node:fs/promises", "node:path"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["GET"]
+    },
+    {
+      "path": "src/components/admin.tsx",
+      "bytes": 27974,
+      "sha256": "a01d73c7d407e881ff6e402359137add7cc45657f6da7a0e45cff351f54e0fdf",
+      "imports": ["react", "next/link", "next/navigation", "next/image"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["Login", "Admin", "rowTitle", "Editor", "AgentSelect"]
+    },
+    {
+      "path": "src/components/avatar.tsx",
+      "bytes": 379,
+      "sha256": "3a97d82f2f31e0b5f01e71bda176878b39ab06f5592f47ef1b5cd201e707ffdc",
+      "imports": ["next/image"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["Avatar"]
+    },
+    {
+      "path": "src/components/client.tsx",
+      "bytes": 13276,
+      "sha256": "e00e7b55862d97f58a1a18437145c4232f4dfa1a8782f703f271f99cd1fa9a55",
+      "imports": ["react", "next/image", "next/link", "@/lib/i18n", "./icons"],
+      "syntaxDiagnostics": 0,
+      "declarations": [
+        "snapshot",
+        "favorites",
+        "subscribe",
+        "Favorite",
+        "FavoriteGrid",
+        "Header",
+        "consentSnapshot",
+        "consentSubscribe",
+        "Consent",
+        "LeadForm",
+        "Gallery",
+        "MapView",
+        "LanguageLinks"
+      ]
+    },
+    {
+      "path": "src/components/filters.tsx",
+      "bytes": 2538,
+      "sha256": "995de361199d9bca4a1e208323d83c65c693d2c08dd75a2d05a88d2fd58edfa2",
+      "imports": ["next/link", "@/lib/i18n", "@/lib/catalog", "./icons"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["Filters"]
+    },
+    {
+      "path": "src/components/icons.tsx",
+      "bytes": 1328,
+      "sha256": "70ff437fcaa9753a9980708e4826e3d8c89284e20d81c51ea98fcebc92cf0534",
+      "imports": [],
+      "syntaxDiagnostics": 0,
+      "declarations": ["Icon"]
+    },
+    {
+      "path": "src/components/pages/catalog.tsx",
+      "bytes": 5431,
+      "sha256": "d58626c1e1f64bb9c3c601e5f66d97ce8609b4579acadeed45d71b3823af8798",
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/catalog",
+        "@/lib/i18n",
+        "@/components/client",
+        "@/components/property-card",
+        "@/components/filters",
+        "./page-head"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["Catalog"]
+    },
+    {
+      "path": "src/components/pages/content-page.tsx",
+      "bytes": 7794,
+      "sha256": "486b5683af31e176ea9dc2a5a6ccca46bcb3d5a5be174ed87aaf6c629d5362e4",
+      "imports": [
+        "@/components/avatar",
+        "next/image",
+        "next/link",
+        "next/navigation",
+        "@/lib/db",
+        "@/lib/i18n",
+        "@/lib/copy",
+        "@/lib/site",
+        "@/components/client",
+        "@/components/icons",
+        "./page-head",
+        "./services"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["ContentPage"]
+    },
+    {
+      "path": "src/components/pages/detail.tsx",
+      "bytes": 6629,
+      "sha256": "824c9ab8ed6e558ab0c1dbb21c33d1b83a41cb3a6aae4780d5257b403983cae0",
+      "imports": [
+        "@/components/avatar",
+        "next/link",
+        "next/navigation",
+        "@/lib/db",
+        "@/lib/catalog",
+        "@/lib/i18n",
+        "@/lib/site",
+        "@/components/client",
+        "@/components/property-card",
+        "@/components/icons",
+        "@/lib/properties"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["Detail"]
+    },
+    {
+      "path": "src/components/pages/footer.tsx",
+      "bytes": 2545,
+      "sha256": "4dbd8d5b9df9cb53a9f4468f653610cb495aefa11d3ea096fca3bf9be13bb04d",
+      "imports": ["next/link", "@/lib/i18n", "@/lib/site"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["Footer"]
+    },
+    {
+      "path": "src/components/pages/home.tsx",
+      "bytes": 6208,
+      "sha256": "37ec2debe3f804690dd3ee5bcad7ad554ef1b0e0924dca129c6e9497fc705384",
+      "imports": [
+        "next/image",
+        "next/link",
+        "@/lib/db",
+        "@/lib/catalog",
+        "@/lib/i18n",
+        "@/components/property-card",
+        "@/components/icons",
+        "./services"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["Home"]
+    },
+    {
+      "path": "src/components/pages/page-head.tsx",
+      "bytes": 557,
+      "sha256": "7fe1677f1bcb8d216bf927ba8af79240ceedc9de86d8cdbc1dbe33396007ec74",
+      "imports": ["next/link", "@/lib/i18n"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["PageHead"]
+    },
+    {
+      "path": "src/components/pages/services.tsx",
+      "bytes": 775,
+      "sha256": "dcc03370f9e5b5b971366ff930341773df4ca2e0df82f208154bb940411f79e2",
+      "imports": ["next/link", "@/lib/i18n", "@/components/icons"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["Services"]
+    },
+    {
+      "path": "src/components/property-card.tsx",
+      "bytes": 2194,
+      "sha256": "f14e5a2911e5eb851cd9dfde915c588b30ebeb7be55cf612d03408b28eb7850e",
+      "imports": [
+        "next/image",
+        "next/link",
+        "@prisma/client",
+        "@/lib/i18n",
+        "./client",
+        "./icons"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["PropertyCard"]
+    },
+    {
+      "path": "src/lib/catalog.ts",
+      "bytes": 1486,
+      "sha256": "11a163fcf554d89bc805469a20f17e7d5c9f9ec5b6680a5759e9a3f44df4da2a",
+      "imports": ["@prisma/client"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["filters", "pageNumber"]
+    },
+    {
+      "path": "src/lib/copy.ts",
+      "bytes": 9737,
+      "sha256": "427abf0665695481988e0a4f68edfdd08f589b2a49e960ee96a25bc82d1f58a0",
+      "imports": ["./i18n"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "src/lib/crm.ts",
+      "bytes": 487,
+      "sha256": "5bb6bb411f6153cf62aef8ab18c17f1477013a7e2235b69e71a21f2abc49ded7",
+      "imports": [],
+      "syntaxDiagnostics": 0,
+      "declarations": ["CrmAdapter", "UnconfiguredCrmAdapter"]
+    },
+    {
+      "path": "src/lib/db.ts",
+      "bytes": 369,
+      "sha256": "4d17773d01bbd6d8c029e0c303498822053fac0ff2453e1a9f49f4bb5a667736",
+      "imports": ["@prisma/client", "@prisma/adapter-pg"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "src/lib/i18n.ts",
+      "bytes": 15493,
+      "sha256": "716cee8a45261275273693b5ffebb12cb6c5b232a4198a35d311968ad5dc3c98",
+      "imports": [],
+      "syntaxDiagnostics": 0,
+      "declarations": [
+        "isLocale",
+        "href",
+        "routeKey",
+        "translation",
+        "label",
+        "money"
+      ]
+    },
+    {
+      "path": "src/lib/properties.ts",
+      "bytes": 464,
+      "sha256": "f42efe4acd25727393c91dff6acc12502f02d6240d10b10007076aa04b140248",
+      "imports": ["react", "./db", "./catalog"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "src/lib/security.ts",
+      "bytes": 4551,
+      "sha256": "95fdaef071ba209384b98fbc70cc250d082017e69860a6fe664ac176e39cd5ac",
+      "imports": ["node:crypto", "next/headers", "./db", "@prisma/client"],
+      "syntaxDiagnostics": 0,
+      "declarations": [
+        "currentUser",
+        "newSession",
+        "cookieOptions",
+        "sameOrigin",
+        "canManage",
+        "owns",
+        "rateLimit",
+        "clientKey",
+        "HttpError",
+        "apiError",
+        "readBodyLimited",
+        "readJson"
+      ]
+    },
+    {
+      "path": "src/lib/site.ts",
+      "bytes": 511,
+      "sha256": "8445376a8b603d12e3bfd9e87320755233cda0195173038a8321cabe86ce13f5",
+      "imports": ["./db", "react"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["jsonLd"]
+    },
+    {
+      "path": "src/lib/validation.ts",
+      "bytes": 3034,
+      "sha256": "433261eaa954c97a3845f8310ae7d9e5c0b557131942ef826c3922ae409ed151",
+      "imports": ["zod"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "src/proxy.ts",
+      "bytes": 524,
+      "sha256": "10be9dce8b03cee4d8d1870d97f7bb63cb642847d76b94a5f7fcedaccde358a1",
+      "imports": ["next/server"],
+      "syntaxDiagnostics": 0,
+      "declarations": ["proxy"]
+    },
+    {
+      "path": "tests/domain.test.ts",
+      "bytes": 3338,
+      "sha256": "ab87c013319f47f3a2622fc2b2cfbc041fad4c8bd1bd92aeba1364fcf6c650f9",
+      "imports": [
+        "vitest",
+        "../src/lib/catalog",
+        "../src/lib/validation",
+        "../src/lib/i18n",
+        "../src/lib/crm"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "tests/e2e/platform.spec.ts",
+      "bytes": 13651,
+      "sha256": "a85a7751e91f6bab85d198dda670928ccf76a137a524651a541d7960ea4be792",
+      "imports": [
+        "@playwright/test",
+        "node:crypto",
+        "bcryptjs",
+        "../../src/lib/db"
+      ],
+      "syntaxDiagnostics": 0,
+      "declarations": ["login"]
+    },
+    {
+      "path": "tests/security.test.ts",
+      "bytes": 2592,
+      "sha256": "01e91c55cb240ed6236aa89619ed1d7a4493f699c02602795e35f5b315492d95",
+      "imports": ["vitest", "../src/lib/security"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    },
+    {
+      "path": "tsconfig.json",
+      "bytes": 654,
+      "sha256": "134bd48cc9e31130b513b9f75d3467be6343528a2c1511c028beb4fec33b158f"
+    },
+    {
+      "path": "vitest.config.ts",
+      "bytes": 146,
+      "sha256": "dcdecf7a4c380587f2983b6d4392ea898bc19e994ee9f69a016bbceca00c9897",
+      "imports": ["vitest/config"],
+      "syntaxDiagnostics": 0,
+      "declarations": []
+    }
+  ]
+}

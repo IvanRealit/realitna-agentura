@@ -20,10 +20,12 @@ export async function ContentPage({
   l,
   key,
   slug,
+  formSent = false,
 }: {
   l: Locale;
   key: RouteKey;
   slug?: string;
+  formSent?: boolean;
 }) {
   const d = dictionaries[l];
   const settings = await siteSettings();
@@ -182,6 +184,11 @@ export async function ContentPage({
               <p className="demo-notice">{d.notice}</p>
             </div>
             <div className="content-card">
+              {formSent && (
+                <p role="status" className="success">
+                  {d.success}
+                </p>
+              )}
               <LeadForm
                 l={l}
                 kind={key === "valuation" ? "VALUATION" : "CONSULTATION"}

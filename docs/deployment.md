@@ -1,3 +1,5 @@
+> Historical baseline runbook. Current Platform 2.0 status: [feature matrix](FEATURE_MATRIX.md), [test report](TEST_REPORT.md), [deployment gates](DEPLOYMENT.md). Backup/restore and full CRM 2.0 are not implemented.
+
 # Deployment runbook — owner approval required
 
 No production site, DNS record or cloud database has been created by this implementation.

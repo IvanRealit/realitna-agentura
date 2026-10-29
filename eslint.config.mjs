@@ -7,6 +7,7 @@ import globals from "globals";
 export default defineConfig([
   globalIgnores([
     ".next/**",
+    ".next-test/**",
     "node_modules/**",
     "data/**",
     "public/uploads/**",

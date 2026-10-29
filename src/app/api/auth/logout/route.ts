@@ -8,5 +8,17 @@ export async function POST(req: Request) {
   const token = jar.get(sessionCookie)?.value;
   if (token) await db.session.deleteMany({ where: { id: hashToken(token) } });
   jar.delete(sessionCookie);
-  return Response.json({ ok: true });
+  if (
+    req.headers
+      .get("content-type")
+      ?.startsWith("application/x-www-form-urlencoded")
+  )
+    return Response.redirect(
+      new URL("/admin", process.env.SITE_URL ?? "http://localhost:3000"),
+      303,
+    );
+  return Response.json(
+    { ok: true },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }

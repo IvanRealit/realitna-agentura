@@ -1,3 +1,4 @@
+import { href } from "@/lib/i18n";
 import { db } from "@/lib/db";
 import { leadSchema } from "@/lib/validation";
 import { publicStatuses } from "@/lib/catalog";
@@ -7,6 +8,7 @@ import {
   HttpError,
   rateLimit,
   readJson,
+  readBodyLimited,
   sameOrigin,
 } from "@/lib/security";
 export async function POST(req: Request) {
@@ -14,7 +16,27 @@ export async function POST(req: Request) {
     if (!sameOrigin(req)) throw new HttpError(403, "Invalid origin");
     if (!(await rateLimit(`leads:${clientKey(req)}`, 10, 3600000)))
       throw new HttpError(429, "Try again later");
-    const v = leadSchema.parse(await readJson(req));
+    const contentType = req.headers.get("content-type")?.split(";")[0].trim();
+    const native = contentType === "application/x-www-form-urlencoded";
+    let input: unknown;
+    if (native) {
+      const form = new URLSearchParams(
+        new TextDecoder().decode(await readBodyLimited(req, 20000)),
+      );
+      input = {
+        name: form.get("name"),
+        email: form.get("email"),
+        phone: form.get("phone") ?? undefined,
+        message: form.get("message"),
+        kind: form.get("kind"),
+        locale: form.get("locale"),
+        consent: form.get("consent") === "on",
+        website: form.get("website") ?? undefined,
+        propertyId: form.get("propertyId") || undefined,
+      };
+    } else if (contentType === "application/json") input = await readJson(req);
+    else throw new HttpError(415, "Use JSON or a native form POST");
+    const v = leadSchema.parse(input);
     const property = v.propertyId
       ? await db.property.findFirst({
           where: { id: v.propertyId, status: { in: [...publicStatuses] } },
@@ -37,7 +59,18 @@ export async function POST(req: Request) {
         agentId: property?.agentId,
       },
     });
-    return Response.json({ ok: true }, { status: 201 });
+    if (native)
+      return Response.redirect(
+        new URL(
+          `${href(v.locale, "contact")}?request=received`,
+          process.env.SITE_URL ?? "http://localhost:3000",
+        ),
+        303,
+      );
+    return Response.json(
+      { ok: true },
+      { status: 201, headers: { "Cache-Control": "no-store" } },
+    );
   } catch (e) {
     return apiError(e);
   }

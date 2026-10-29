@@ -146,7 +146,13 @@ export default async function Page(props: Props) {
         </section>
       </>
     );
-  } else content = await ContentPage({ l, key, slug });
+  } else
+    content = await ContentPage({
+      l,
+      key,
+      slug,
+      formSent: q.request === "received",
+    });
   return (
     <>
       <a href="#main" className="skip-link">

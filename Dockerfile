@@ -1,4 +1,8 @@
 # syntax=docker/dockerfile:1
+# A dependency-free target for verifying the exact Docker build context.
+FROM scratch AS context-audit
+COPY . /context
+
 FROM node:24-bookworm-slim AS build
 WORKDIR /app
 COPY package.json package-lock.json ./

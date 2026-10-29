@@ -6,7 +6,9 @@ import {
 } from "@playwright/test";
 import { randomUUID, randomBytes } from "node:crypto";
 import { hash } from "bcryptjs";
+import { assertIsolatedTestProcess } from "../../src/config/test-environment";
 import { db } from "../../src/lib/db";
+assertIsolatedTestProcess();
 const suffix = randomUUID().slice(0, 8);
 const password = randomBytes(24).toString("hex");
 const base = process.env.TEST_BASE_URL ?? "http://localhost:3000";
@@ -19,6 +21,7 @@ let otherId: string;
 let managerId: string;
 let propertyId: string;
 let ownedId: string;
+let ownedVersion: number;
 let leadId: string;
 let uploadUrl: string;
 const property = (agentId: string, slug: string) => ({
@@ -110,7 +113,14 @@ test.afterAll(async () => {
   await db.lead.deleteMany({
     where: {
       OR: [
-        { email: `test-lead-${suffix}@example.invalid` },
+        {
+          email: {
+            in: [
+              `test-lead-${suffix}@example.invalid`,
+              `test-native-${suffix}@example.invalid`,
+            ],
+          },
+        },
         { id: leadId ?? "none" },
       ],
     },
@@ -153,6 +163,9 @@ test("public data, localized canonical/hreflang, filters and 404", async ({
   expect(html).toContain('hrefLang="sk"');
   expect(html).toContain("DEMO");
   expect((await request.get("/sk/not-a-page")).status()).toBe(404);
+  expect(await (await request.get("/robots.txt")).text()).toContain(
+    `${base}/sitemap.xml`,
+  );
 });
 test("rejects anonymous access and cross-origin writes", async ({
   request,
@@ -176,10 +189,28 @@ test("admin creates draft, edits and publishes; public sees only published", asy
   expect(created.status()).toBe(201);
   propertyId = (await created.json()).id;
   expect((await request.get(`/en/properties/${v.slug}`)).status()).toBe(404);
+  const skippedReview = await admin.patch(
+    `/api/admin/properties/${propertyId}`,
+    { data: { ...v, status: "PUBLISHED", version: 1 } },
+  );
+  expect(skippedReview.status()).toBe(409);
+  expect((await skippedReview.json()).code).toBe("REVIEW_REQUIRED");
+  const reviewed = await admin.patch(`/api/admin/properties/${propertyId}`, {
+    data: { ...v, status: "REVIEW", version: 1 },
+  });
+  expect(reviewed.status()).toBe(200);
+  expect((await reviewed.json()).version).toBe(2);
+  expect((await request.get(`/en/properties/${v.slug}`)).status()).toBe(404);
+  const stale = await admin.patch(`/api/admin/properties/${propertyId}`, {
+    data: { ...v, status: "PUBLISHED", version: 1 },
+  });
+  expect(stale.status()).toBe(409);
+  expect((await stale.json()).code).toBe("VERSION_CONFLICT");
   const edited = await admin.patch(`/api/admin/properties/${propertyId}`, {
-    data: { ...v, status: "PUBLISHED" },
+    data: { ...v, status: "PUBLISHED", version: 2 },
   });
   expect(edited.status()).toBe(200);
+  expect((await edited.json()).version).toBe(3);
   const published = await request.get(`/uk/nerukhomist/${v.slug}`);
   expect(published.status()).toBe(200);
   expect(await published.text()).toContain("DEMO інтеграційний об’єкт");
@@ -200,7 +231,11 @@ test("agent isolation, permitted edits and publication restrictions", async () =
   expect(
     (
       await agent.patch(`/api/admin/properties/${ownedId}`, {
-        data: { ...property(agentId, `test-owned-${suffix}`), price: 220000 },
+        data: {
+          ...property(agentId, `test-owned-${suffix}`),
+          price: 220000,
+          version: 1,
+        },
       })
     ).status(),
   ).toBe(200);
@@ -211,6 +246,27 @@ test("agent isolation, permitted edits and publication restrictions", async () =
           ...property(agentId, `test-owned-${suffix}`),
           status: "PUBLISHED",
         },
+      })
+    ).status(),
+  ).toBe(403);
+  const draft = { ...property(agentId, `test-owned-${suffix}`), price: 220000 };
+  const review = await agent.patch(`/api/admin/properties/${ownedId}`, {
+    data: { ...draft, status: "REVIEW", version: 2 },
+  });
+  expect(review.status()).toBe(200);
+  const incomplete = await manager.patch(`/api/admin/properties/${ownedId}`, {
+    data: { ...draft, status: "PUBLISHED", version: 3, images: [] },
+  });
+  expect(incomplete.status()).toBe(422);
+  const published = await manager.patch(`/api/admin/properties/${ownedId}`, {
+    data: { ...draft, status: "PUBLISHED", version: 3 },
+  });
+  expect(published.status()).toBe(200);
+  ownedVersion = (await published.json()).version;
+  expect(
+    (
+      await agent.patch(`/api/admin/properties/${ownedId}`, {
+        data: { ...draft, status: "PUBLISHED", version: ownedVersion },
       })
     ).status(),
   ).toBe(403);
@@ -332,7 +388,11 @@ test("manager manages content and can delete property; logout revokes session", 
     (await manager.delete(`/api/admin/content/${contentId}`)).status(),
   ).toBe(200);
   expect(
-    (await manager.delete(`/api/admin/properties/${ownedId}`)).status(),
+    (
+      await manager.delete(`/api/admin/properties/${ownedId}`, {
+        headers: { "If-Match": `"${ownedVersion}"` },
+      })
+    ).status(),
   ).toBe(200);
   expect((await agent.post("/api/auth/logout")).status()).toBe(200);
   expect((await agent.get("/api/admin/properties")).status()).toBe(401);
@@ -409,6 +469,27 @@ test("staff editor creates and removes a draft through the browser", async ({
     .getByRole("row")
     .filter({ hasText: "DEMO browser property" });
   await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "Upraviť", exact: true }).click();
+  await page.getByLabel("Cena EUR", { exact: true }).fill("250000");
+  await page
+    .getByLabel("URL fotografií (jeden riadok = jedna fotografia)", {
+      exact: true,
+    })
+    .fill("/images/living.webp");
+  await page
+    .getByRole("combobox", { name: /^Publikovanie/ })
+    .selectOption("REVIEW");
+  await page.getByRole("button", { name: "Uložiť zmeny" }).click();
+  await expect(row).toContainText("REVIEW");
+  await row.getByRole("button", { name: "Upraviť", exact: true }).click();
+  await page
+    .getByRole("combobox", { name: /^Publikovanie/ })
+    .selectOption("PUBLISHED");
+  await page.getByRole("button", { name: "Uložiť zmeny" }).click();
+  await expect(row).toContainText("PUBLISHED");
+  expect(
+    (await page.request.get(`/en/properties/test-ui-${suffix}`)).status(),
+  ).toBe(200);
   page.once("dialog", (dialog) => dialog.accept());
   await row.getByRole("button", { name: "Odstrániť" }).click();
   await expect(row).toHaveCount(0);
@@ -428,4 +509,197 @@ test("gallery supports keyboard dismissal and maps stay opt-in", async ({
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();
   expect(externalMaps).toBe(0);
+});
+
+test("native form POST persists a lead with JavaScript disabled and keeps personal fields out of the URL", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    baseURL: base,
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto("/en/contact");
+    await page.getByLabel("Name", { exact: true }).fill("DEMO Native");
+    await page
+      .getByLabel("Email", { exact: true })
+      .fill(`test-native-${suffix}@example.invalid`);
+    await page
+      .getByLabel("Your message", { exact: true })
+      .fill("A real native form submission without browser JavaScript.");
+    await page.locator("input[name=consent]").check();
+    await page.getByRole("button", { name: "Send request" }).click();
+    await page.waitForURL(`${base}/en/contact?request=received`);
+    expect(page.url()).not.toContain("email=");
+    await expect(
+      page.getByRole("status").filter({ hasText: "Thank you." }),
+    ).toContainText("Thank you. We have received your request.");
+    expect(
+      await db.lead.count({
+        where: { email: `test-native-${suffix}@example.invalid` },
+      }),
+    ).toBe(1);
+  } finally {
+    await context.close();
+  }
+});
+
+test("public site and staff property editor fit all eight required viewport widths", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: base,
+    storageState: await admin.storageState(),
+  });
+  try {
+    const page = await context.newPage();
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    for (const width of [320, 360, 375, 390, 430, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const route of [
+        "/en",
+        "/en/properties",
+        "/admin",
+        "/admin/properties",
+      ]) {
+        await page.goto(route);
+        await expect(page.locator("h1")).toBeVisible();
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+          `${route} at ${width}px must not overflow`,
+        ).toBe(true);
+      }
+      const bottom = page.getByRole("navigation", {
+        name: "Rýchla navigácia CRM",
+      });
+      if (width <= 800) {
+        await expect(bottom).toBeVisible();
+        await bottom.getByRole("link", { name: "Dopyty", exact: true }).click();
+        await expect(
+          page.getByRole("heading", { name: "Dopyty / CRM", exact: true }),
+        ).toBeVisible();
+        await bottom.getByRole("link", { name: "Ponuky", exact: true }).click();
+      } else await expect(bottom).not.toBeVisible();
+      await page.getByRole("button", { name: "+ Nový záznam" }).click();
+      await expect(page.getByLabel("URL slug", { exact: true })).toBeVisible();
+      if (width <= 800)
+        expect(
+          await page
+            .getByLabel("URL slug", { exact: true })
+            .evaluate((e) => getComputedStyle(e).fontSize),
+        ).toBe("16px");
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+        `Editor at ${width}px must not overflow`,
+      ).toBe(true);
+      await page.getByRole("button", { name: "Zrušiť", exact: true }).click();
+    }
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+test("concurrent property writers have exactly one winner and stale deletes cannot remove data", async () => {
+  const created = await admin.post("/api/admin/properties", {
+    data: property(otherId, `test-concurrent-${suffix}`),
+  });
+  expect(created.status()).toBe(201);
+  const record = await created.json();
+  const propertyId = record.id;
+  const before = await db.auditLog.count({
+    where: { resource: "properties", resourceId: propertyId },
+  });
+  const results = await Promise.all(
+    [210000, 220000].map((price) =>
+      admin.patch(`/api/admin/properties/${propertyId}`, {
+        data: { ...record, price },
+      }),
+    ),
+  );
+  expect(results.map((r) => r.status()).sort()).toEqual([200, 409]);
+  const current = await db.property.findUniqueOrThrow({
+    where: { id: propertyId },
+  });
+  expect(current.version).toBe(record.version + 1);
+  expect([210000, 220000]).toContain(current.price);
+  expect(
+    await db.auditLog.count({
+      where: { resource: "properties", resourceId: propertyId },
+    }),
+  ).toBe(before + 1);
+  const audit = await db.auditLog.findFirstOrThrow({
+    where: { resource: "properties", resourceId: propertyId },
+    orderBy: { createdAt: "desc" },
+  });
+  expect(audit.metadata).toMatchObject({
+    fromVersion: record.version,
+    toVersion: current.version,
+    priceTo: current.price,
+  });
+  expect(
+    (
+      await admin.delete(`/api/admin/properties/${propertyId}`, {
+        headers: { "If-Match": `"${record.version}"` },
+      })
+    ).status(),
+  ).toBe(409);
+  expect(
+    (
+      await admin.patch(`/api/admin/properties/${propertyId}`, {
+        data: property(otherId, record.slug),
+      })
+    ).status(),
+  ).toBe(428);
+  expect(
+    (
+      await admin.get(`/api/admin/properties/${propertyId}/unexpected`)
+    ).status(),
+  ).toBe(404);
+  expect(await db.property.count({ where: { id: propertyId } })).toBe(1);
+});
+
+test("native staff login and logout never put passwords in URLs", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    baseURL: base,
+    extraHTTPHeaders: {
+      "x-forwarded-for": `127.202.${parseInt(suffix.slice(0, 2), 16)}.${parseInt(suffix.slice(2, 4), 16)}`,
+    },
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto("/admin");
+    await page
+      .getByLabel("E-mail", { exact: true })
+      .fill(`test-admin-${suffix}@example.invalid`);
+    await page.getByLabel("Heslo", { exact: true }).fill(password);
+    await page.getByRole("button", { name: "Prihlásiť sa →" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Prehľad", exact: true }),
+    ).toBeVisible();
+    expect(new URL(page.url()).search).toBe("");
+    expect((await context.request.get("/api/admin/properties")).status()).toBe(
+      200,
+    );
+    await page
+      .getByRole("button", { name: "Odhlásiť sa", exact: true })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Vitajte späť.", exact: true }),
+    ).toBeVisible();
+    expect((await context.request.get("/api/admin/properties")).status()).toBe(
+      401,
+    );
+  } finally {
+    await context.close();
+  }
 });

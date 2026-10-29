@@ -1678,3 +1678,85 @@ textarea {
   top: 12px;
   color: white;
 }
+
+/* The existing CRM remains operable with the iOS keyboard and safe-area inset. */
+.editor-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.crm-bottom-nav {
+  display: none;
+}
+@media (max-width: 800px) {
+  .admin-main {
+    padding-bottom: calc(105px + env(safe-area-inset-bottom, 0px));
+    min-width: 0;
+  }
+  .crm-bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    z-index: 30;
+    padding: 7px 12px calc(7px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -6px 25px #193e3208;
+  }
+  .crm-bottom-nav a {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    flex-direction: column;
+    font-size: 11px;
+    border-radius: 4px;
+  }
+  .crm-bottom-nav a[aria-current="page"] {
+    background: #e4eae0;
+    color: var(--green);
+  }
+  .admin-shell input,
+  .admin-shell select,
+  .admin-shell textarea,
+  .login-card input,
+  .lead-form input,
+  .lead-form select,
+  .lead-form textarea {
+    font-size: 16px;
+  }
+  .admin-sidebar nav a,
+  .menu-button,
+  .favorite,
+  .circle-link {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .favorite,
+  .circle-link {
+    width: 44px;
+    height: 44px;
+  }
+  .language-switch a {
+    display: inline-flex;
+    min-height: 44px;
+    min-width: 28px;
+    align-items: center;
+    justify-content: center;
+  }
+  .form-grid > *,
+  .filter-grid > *,
+  .hero-search > * {
+    min-width: 0;
+  }
+  input,
+  select,
+  textarea {
+    min-width: 0;
+  }
+}

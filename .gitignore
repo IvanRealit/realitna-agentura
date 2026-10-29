@@ -9,3 +9,5 @@ test-results/
 public/uploads/
 *.tsbuildinfo
 data/
+
+.next-test/

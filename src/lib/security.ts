@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { db } from "./db";
 import type { Role } from "@prisma/client";
+import { can, ownsRecord } from "@/modules/access/policy";
 export const sessionCookie = "realitna_session";
 export const hashToken = (v: string) =>
   createHash("sha256").update(v).digest("hex");
@@ -58,10 +59,10 @@ export function sameOrigin(req: Request) {
   );
 }
 export function canManage(role: Role) {
-  return role === "ADMIN" || role === "MANAGER";
+  return can(role, "properties", "publish");
 }
 export function owns(role: Role, userId: string, agentId: string | null) {
-  return canManage(role) || userId === agentId;
+  return ownsRecord(role, userId, agentId);
 }
 export async function rateLimit(key: string, max: number, windowMs: number) {
   const now = new Date();
@@ -80,13 +81,17 @@ export class HttpError extends Error {
   constructor(
     public status: number,
     message: string,
+    public code?: string,
   ) {
     super(message);
   }
 }
 export function apiError(error: unknown) {
   if (error instanceof HttpError)
-    return Response.json({ error: error.message }, { status: error.status });
+    return Response.json(
+      { error: error.message, ...(error.code ? { code: error.code } : {}) },
+      { status: error.status, headers: { "Cache-Control": "no-store" } },
+    );
   if (error && typeof error === "object" && "issues" in error)
     return Response.json(
       { error: "Invalid input", issues: error.issues },
