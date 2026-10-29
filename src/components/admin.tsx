@@ -1,5 +1,11 @@
 "use client";
-import { staffNavigation } from "@/modules/access/policy";
+import { SecuritySettings } from "./security-settings";
+import {
+  staffNavigation,
+  can,
+  roles,
+  isResource,
+} from "@/modules/access/policy";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -16,6 +22,8 @@ const names: Record<string, string> = {
   content: "Stránky a magazín",
   settings: "Nastavenia",
   audit: "Denník aktivít",
+  branches: "Pobočky",
+  security: "Bezpečnosť účtu",
 };
 const newProperty = (user: User) => ({
   slug: "",
@@ -61,7 +69,7 @@ export function Login({ brand }: { brand: string }) {
           <span className="brand-dot">.</span>
         </Link>
         <h1>Vitajte späť.</h1>
-        <p>Zabezpečený prístup pre tím. Admin · Manager · Agent</p>
+        <p>Zabezpečený prístup pre tím agentúry.</p>
         <form
           action="/api/auth/login"
           method="post"
@@ -77,13 +85,14 @@ export function Login({ brand }: { brand: string }) {
                 body: JSON.stringify({
                   email: f.get("email"),
                   password: f.get("password"),
+                  code: f.get("code"),
                 }),
               });
               if (!r.ok) {
                 setError(
                   r.status === 429
                     ? "Príliš veľa pokusov. Skúste neskôr."
-                    : "Nesprávne prihlasovacie údaje.",
+                    : "Skontrolujte heslo a prípadný nepoužitý MFA kód.",
                 );
               } else {
                 router.refresh();
@@ -110,6 +119,10 @@ export function Login({ brand }: { brand: string }) {
               maxLength={128}
             />
           </label>
+          <label>
+            Kód MFA alebo obnovovací kód (ak je zapnuté)
+            <input name="code" autoComplete="one-time-code" maxLength={100} />
+          </label>
           <button className="button" disabled={busy}>
             {busy ? "…" : "Prihlásiť sa →"}
           </button>
@@ -120,8 +133,8 @@ export function Login({ brand }: { brand: string }) {
           )}
         </form>
         <p style={{ marginTop: 25 }}>
-          Prvý účet vytvorte bezpečne cez seed a lokálne premenné. Verejná
-          registrácia je vypnutá.
+          Prvý účet vytvorte bezpečne cez db:bootstrap a lokálne premenné.
+          Verejná registrácia je vypnutá.
         </p>
       </div>
     </div>
@@ -161,11 +174,11 @@ export function Admin({
   const readOnlyProperty = Boolean(
     editing &&
     resource === "properties" &&
-    user.role === "AGENT" &&
+    !can(user.role, "properties", "publish") &&
     !["DRAFT", "REVIEW"].includes(String(editing.status)),
   );
   const load = useCallback(async () => {
-    if (resource === "dashboard") return;
+    if (["dashboard", "security"].includes(resource)) return;
     setBusy(true);
     try {
       const r = await fetch(`/api/admin/${resource}`, { cache: "no-store" });
@@ -181,7 +194,7 @@ export function Admin({
     }
   }, [resource]);
   useEffect(() => {
-    if (resource === "dashboard") return;
+    if (["dashboard", "security"].includes(resource)) return;
     let active = true;
     fetch(`/api/admin/${resource}`, { cache: "no-store" })
       .then(async (r) => {
@@ -262,16 +275,27 @@ export function Admin({
         ? newProperty(user)
         : resource === "content"
           ? newContent()
-          : {
-              name: "",
-              email: "",
-              password: "",
-              role: "AGENT",
-              active: true,
-              phone: "",
-              avatar: "",
-              bio: {},
-            },
+          : resource === "branches"
+            ? {
+                name: "",
+                city: "",
+                address: "",
+                phone: "",
+                email: "",
+                active: true,
+                publicContact: false,
+                commissionBps: 0,
+              }
+            : {
+                name: "",
+                email: "",
+                password: "",
+                role: "AGENT",
+                active: true,
+                phone: "",
+                avatar: "",
+                bio: {},
+              },
     );
   }
   return (
@@ -319,11 +343,13 @@ export function Admin({
             <div className="eyebrow">Pracovný priestor / {user.role}</div>
             <h1>{names[resource]}</h1>
           </div>
-          {["properties", "content", "users"].includes(resource) && (
-            <button className="button" onClick={create}>
-              + Nový záznam
-            </button>
-          )}
+          {isResource(resource) &&
+            can(user.role, resource, "create") &&
+            resource !== "settings" && (
+              <button className="button" onClick={create}>
+                + Nový záznam
+              </button>
+            )}
         </div>
         {error && (
           <div role="alert" className="error">
@@ -335,7 +361,9 @@ export function Admin({
             {notice}
           </div>
         )}
-        {resource === "dashboard" ? (
+        {resource === "security" ? (
+          <SecuritySettings role={user.role} />
+        ) : resource === "dashboard" ? (
           <>
             <div className="admin-stats">
               <div className="admin-stat">
@@ -362,11 +390,18 @@ export function Admin({
                   : "Spravujte ponuky, dopyty a publikovaný obsah. Dôležité zmeny sa zaznamenávajú do denníka."}
               </p>
               <div className="button-row">
-                <Link href="/admin/properties" className="button">
-                  Nehnuteľnosti →
-                </Link>
-                <Link href="/admin/leads" className="button outline">
-                  Dopyty →
+                {can(user.role, "properties", "read") && (
+                  <Link href="/admin/properties" className="button">
+                    Nehnuteľnosti →
+                  </Link>
+                )}
+                {can(user.role, "leads", "read") && (
+                  <Link href="/admin/leads" className="button outline">
+                    Dopyty →
+                  </Link>
+                )}
+                <Link href="/admin/security" className="button outline">
+                  Bezpečnosť účtu →
                 </Link>
               </div>
             </div>
@@ -416,7 +451,8 @@ export function Admin({
                       <th>Názov / ID</th>
                       <th>Typ / Stav</th>
                       <th>Detail</th>
-                      {resource !== "audit" && <th>Akcie</th>}
+                      {isResource(resource) &&
+                        can(user.role, resource, "update") && <th>Akcie</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -443,45 +479,56 @@ export function Admin({
                           )}
                         </td>
                         <td>
-                          {resource === "leads"
-                            ? String(row.message)
-                            : resource === "audit"
-                              ? `${row.resource} · ${row.resourceId} · ${row.actorId}`
-                              : String(row.city ?? row.slug ?? row.email ?? "")}
+                          {resource === "branches"
+                            ? (() => {
+                                const counts = row._count as
+                                  | {
+                                      users: number;
+                                      properties: number;
+                                      leads: number;
+                                    }
+                                  | undefined;
+                                return `${row.city} · Tím: ${counts?.users ?? 0} · Ponuky: ${counts?.properties ?? 0} · Dopyty: ${counts?.leads ?? 0}`;
+                              })()
+                            : resource === "leads"
+                              ? String(row.message)
+                              : resource === "audit"
+                                ? `${row.resource} · ${row.resourceId} · ${row.actorId}`
+                                : String(
+                                    row.city ?? row.slug ?? row.email ?? "",
+                                  )}
                         </td>
-                        {resource !== "audit" && (
-                          <td>
-                            <button
-                              onClick={() => {
-                                setEditing(
-                                  resource === "leads"
-                                    ? {
-                                        id: row.id,
-                                        status: row.status,
-                                        notes: row.notes,
-                                        agentId: row.agentId,
-                                      }
-                                    : row,
-                                );
-                                setError("");
-                              }}
-                            >
-                              Upraviť
-                            </button>
-                            {(resource === "content" ||
-                              (resource === "properties" &&
-                                user.role !== "AGENT") ||
-                              (resource === "leads" &&
-                                user.role === "ADMIN")) && (
+                        {isResource(resource) &&
+                          can(user.role, resource, "update") && (
+                            <td>
                               <button
-                                style={{ marginLeft: 12, color: "#923c30" }}
-                                onClick={() => remove(row)}
+                                onClick={() => {
+                                  setEditing(
+                                    resource === "leads"
+                                      ? {
+                                          id: row.id,
+                                          status: row.status,
+                                          notes: row.notes,
+                                          agentId: row.agentId,
+                                        }
+                                      : row,
+                                  );
+                                  setError("");
+                                }}
                               >
-                                Odstrániť
+                                Upraviť
                               </button>
-                            )}
-                          </td>
-                        )}
+                              {isResource(resource) &&
+                                can(user.role, resource, "delete") && (
+                                  <button
+                                    style={{ marginLeft: 12, color: "#923c30" }}
+                                    onClick={() => remove(row)}
+                                  >
+                                    Odstrániť
+                                  </button>
+                                )}
+                            </td>
+                          )}
                       </tr>
                     ))}
                     {!rows.length && !busy && (
@@ -501,6 +548,7 @@ export function Admin({
           ["dashboard", "Prehľad", "menu"],
           ["properties", "Ponuky", "pin"],
           ["leads", "Dopyty", "check"],
+          ["security", "Účet", "menu"],
         ]
           .filter(([key]) => allowed.includes(key))
           .map(([key, title, icon]) => (
@@ -667,7 +715,7 @@ function Editor({
           {select(
             "status",
             "Publikovanie",
-            user.role === "AGENT" &&
+            !can(user.role, "properties", "publish") &&
               ["DRAFT", "REVIEW"].includes(String(data.status))
               ? ["DRAFT", "REVIEW"]
               : [
@@ -679,13 +727,13 @@ function Editor({
                   "RENTED",
                   "ARCHIVED",
                 ],
-            user.role === "AGENT" &&
+            !can(user.role, "properties", "publish") &&
               !["DRAFT", "REVIEW"].includes(String(data.status)),
           )}
           <AgentSelect
             value={String(data.agentId ?? "")}
             onChange={(v) => set("agentId", v)}
-            disabled={user.role === "AGENT"}
+            disabled={!can(user.role, "properties", "assign")}
           />
           {["latitude", "longitude"].map((k) => (
             <label key={k}>
@@ -817,7 +865,7 @@ function Editor({
     return (
       <div className="form-grid">
         {select("status", "Stav", ["NEW", "IN_PROGRESS", "CLOSED"])}
-        {user.role !== "AGENT" && (
+        {can(user.role, "leads", "assign") && (
           <AgentSelect
             value={String(data.agentId ?? "")}
             onChange={(v) => set("agentId", v || null)}
@@ -839,7 +887,7 @@ function Editor({
               type="password"
               autoComplete="new-password"
               minLength={12}
-              maxLength={128}
+              maxLength={72}
               required={!data.id}
               value={String(data.password ?? "")}
               onChange={(e) => {
@@ -851,11 +899,38 @@ function Editor({
             />
           </label>
         }
-        {select("role", "Rola", ["ADMIN", "MANAGER", "AGENT"])}
+        {select(
+          "role",
+          "Rola",
+          roles.filter(
+            (r) => user.role === "SUPER_ADMIN" || r !== "SUPER_ADMIN",
+          ),
+        )}
+        <BranchSelect
+          value={String(data.branchId ?? "")}
+          onChange={(v) => set("branchId", v || null)}
+        />
         {input("phone", "Telefón", "tel", false)}
         {check("active", "Aktívny účet")}
         {input("avatar", "Fotografia (lokálna alebo HTTPS URL)", "text", false)}
         {translate("bio")}
+      </div>
+    );
+  if (resource === "branches")
+    return (
+      <div className="form-grid">
+        {input("name", "Názov pobočky")}
+        {input("city", "Mesto")}
+        {input("address", "Adresa", "text", false)}
+        {input("phone", "Telefón", "tel", false)}
+        {input("email", "E-mail", "email", false)}
+        {input(
+          "commissionBps",
+          "Podiel pobočky (basis points, 100 = 1%)",
+          "number",
+        )}
+        {check("active", "Aktívna pobočka")}
+        {check("publicContact", "Verejný kontakt")}
       </div>
     );
   if (resource === "settings")
@@ -923,6 +998,40 @@ function AgentSelect({
         ))}
       </select>
       {error && <span role="alert">Obnovte stránku a skúste znova.</span>}
+    </label>
+  );
+}
+
+function BranchSelect({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [rows, setRows] = useState<
+    { id: string; name: string; active: boolean }[]
+  >([]);
+  useEffect(() => {
+    fetch("/api/admin/branches")
+      .then((r) => r.json())
+      .then((v) => {
+        if (Array.isArray(v)) setRows(v);
+      })
+      .catch(() => {});
+  }, []);
+  return (
+    <label>
+      Pobočka
+      <select value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">Bez pobočky</option>
+        {rows.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.name}
+            {!b.active ? " (archív)" : ""}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }

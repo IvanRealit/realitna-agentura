@@ -1760,3 +1760,42 @@ textarea {
     min-width: 0;
   }
 }
+
+.security-settings {
+  display: grid;
+  gap: 24px;
+  max-width: 1000px;
+  min-width: 0;
+}
+.security-settings .editor {
+  border: 1px solid var(--line);
+  background: white;
+  border-radius: 12px;
+  padding: clamp(16px, 3vw, 28px);
+  min-width: 0;
+}
+.security-settings h2 {
+  margin-bottom: 16px;
+}
+.security-settings label {
+  margin-bottom: 16px;
+}
+.security-settings p {
+  overflow-wrap: anywhere;
+  margin-bottom: 12px;
+}
+.security-settings form + form {
+  margin-top: 24px;
+}
+.session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.security-settings button {
+  min-height: 44px;
+}

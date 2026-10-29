@@ -1,3 +1,5 @@
+import { roles } from "@/modules/access/policy";
+import { passwordSchema } from "@/modules/identity/validation";
 import { z } from "zod";
 const text = z.string().trim();
 const url = text.refine(
@@ -76,9 +78,10 @@ export const leadSchema = z.object({
 export const userSchema = z.object({
   name: text.min(2).max(100),
   email: z.email().max(254),
-  password: z.string().min(12).max(128).optional(),
-  role: z.enum(["ADMIN", "MANAGER", "AGENT"]),
+  password: passwordSchema.optional(),
+  role: z.enum(roles),
   active: z.boolean(),
+  branchId: z.string().nullable().optional(),
   phone: text.max(40).nullable().optional(),
   avatar: url.nullable().optional(),
   bio: z.record(z.string(), z.unknown()).optional(),

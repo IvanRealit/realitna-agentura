@@ -31,8 +31,12 @@ export async function POST(req: Request) {
           ),
         )
       : await readJson(req);
-    const { email, password } = z
-      .object({ email: z.email(), password: z.string().min(1).max(128) })
+    const { email, password, code } = z
+      .object({
+        email: z.email(),
+        password: z.string().min(1).max(128),
+        code: z.string().max(100).default(""),
+      })
       .parse(input);
     if (
       !(await rateLimit(
@@ -50,9 +54,30 @@ export async function POST(req: Request) {
       user?.passwordHash ??
         "$2b$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW",
     );
-    if (!user || !user.active || !valid)
+    if (!user || !user.active || !valid) {
+      await db.loginEvent.create({
+        data: {
+          userId: user?.id,
+          success: false,
+          reason: "INVALID_CREDENTIALS",
+        },
+      });
       throw new HttpError(401, "Invalid credentials");
-    const token = await newSession(user.id);
+    }
+    let token: string;
+    try {
+      token = await newSession(user.id, user.authVersion, code);
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 401)
+        await db.loginEvent.create({
+          data: {
+            userId: user.id,
+            success: false,
+            reason: "FACTOR_OR_ACCOUNT_REJECTED",
+          },
+        });
+      throw error;
+    }
     (await cookies()).set(sessionCookie, token, cookieOptions());
     if (native)
       return Response.redirect(

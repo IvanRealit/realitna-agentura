@@ -1,0 +1,35 @@
+ALTER TYPE "Role" ADD VALUE 'SUPER_ADMIN';
+ALTER TYPE "Role" ADD VALUE 'BRANCH_MANAGER';
+ALTER TYPE "Role" ADD VALUE 'COORDINATOR';
+ALTER TYPE "Role" ADD VALUE 'ACCOUNTANT';
+ALTER TYPE "Role" ADD VALUE 'AUDITOR';
+CREATE TABLE "Branch" (
+ "id" TEXT PRIMARY KEY, "name" TEXT NOT NULL, "address" TEXT NOT NULL DEFAULT '',
+ "city" TEXT NOT NULL, "phone" TEXT NOT NULL DEFAULT '', "email" TEXT NOT NULL DEFAULT '',
+ "active" BOOLEAN NOT NULL DEFAULT true, "publicContact" BOOLEAN NOT NULL DEFAULT false,
+ "commissionBps" INTEGER NOT NULL DEFAULT 0 CHECK ("commissionBps" BETWEEN 0 AND 10000),
+ "version" INTEGER NOT NULL DEFAULT 1, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ "updatedAt" TIMESTAMP(3) NOT NULL
+);
+ALTER TABLE "User" ADD COLUMN "branchId" TEXT REFERENCES "Branch"("id") ON DELETE RESTRICT,
+ ADD COLUMN "mfaSecret" TEXT, ADD COLUMN "mfaPending" TEXT,
+ ADD COLUMN "mfaLastCounter" BIGINT NOT NULL DEFAULT -1,
+ ADD COLUMN "recoveryHashes" TEXT[] NOT NULL DEFAULT '{}',
+ ADD COLUMN "authVersion" INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE "Property" ADD COLUMN "branchId" TEXT REFERENCES "Branch"("id") ON DELETE RESTRICT;
+ALTER TABLE "Lead" ADD COLUMN "branchId" TEXT REFERENCES "Branch"("id") ON DELETE RESTRICT;
+CREATE INDEX "User_branchId_idx" ON "User"("branchId");
+CREATE INDEX "Property_branchId_idx" ON "Property"("branchId");
+CREATE INDEX "Lead_branchId_idx" ON "Lead"("branchId");
+CREATE TABLE "AccountToken" (
+ "id" TEXT PRIMARY KEY, "userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,
+ "kind" TEXT NOT NULL CHECK ("kind" IN ('INVITE','RESET')), "authVersion" INTEGER NOT NULL,
+ "expiresAt" TIMESTAMP(3) NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "AccountToken_userId_kind_idx" ON "AccountToken"("userId","kind");
+CREATE TABLE "LoginEvent" (
+ "id" TEXT PRIMARY KEY, "userId" TEXT REFERENCES "User"("id") ON DELETE SET NULL,
+ "success" BOOLEAN NOT NULL, "reason" TEXT NOT NULL,
+ "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX "LoginEvent_createdAt_idx" ON "LoginEvent"("createdAt");

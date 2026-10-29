@@ -1,4 +1,4 @@
-import { staffNavigation } from "@/modules/access/policy";
+import { staffNavigation, recordScope, can } from "@/modules/access/policy";
 import { notFound } from "next/navigation";
 import { currentUser } from "@/lib/security";
 import { db } from "@/lib/db";
@@ -24,11 +24,15 @@ export default async function AdminPage({
   const resource = path[0] ?? "dashboard";
   const allowed = staffNavigation(user.role);
   if (path.length > 1 || !allowed.includes(resource)) notFound();
-  const owned = user.role === "AGENT" ? { agentId: user.id } : {};
+  const owned = recordScope(user);
   const [properties, leads, newLeads] = await Promise.all([
-    db.property.count({ where: owned }),
-    db.lead.count({ where: owned }),
-    db.lead.count({ where: { ...owned, status: "NEW" } }),
+    can(user.role, "properties", "read")
+      ? db.property.count({ where: owned })
+      : 0,
+    can(user.role, "leads", "read") ? db.lead.count({ where: owned }) : 0,
+    can(user.role, "leads", "read")
+      ? db.lead.count({ where: { ...owned, status: "NEW" } })
+      : 0,
   ]);
   return (
     <Admin

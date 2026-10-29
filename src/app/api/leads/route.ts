@@ -1,3 +1,4 @@
+import { requireActiveBranch } from "@/modules/branches/service";
 import { href } from "@/lib/i18n";
 import { db } from "@/lib/db";
 import { leadSchema } from "@/lib/validation";
@@ -46,18 +47,22 @@ export async function POST(req: Request) {
       throw new HttpError(409, "Property is not available for viewings");
     if (v.propertyId && !property)
       throw new HttpError(400, "Property unavailable");
-    await db.lead.create({
-      data: {
-        name: v.name,
-        email: v.email,
-        phone: v.phone,
-        message: v.message,
-        kind: v.kind,
-        locale: v.locale,
-        consentAt: new Date(),
-        propertyId: property?.id,
-        agentId: property?.agentId,
-      },
+    await db.$transaction(async (tx) => {
+      await requireActiveBranch(tx, property?.branchId);
+      await tx.lead.create({
+        data: {
+          name: v.name,
+          email: v.email,
+          phone: v.phone,
+          message: v.message,
+          kind: v.kind,
+          locale: v.locale,
+          consentAt: new Date(),
+          propertyId: property?.id,
+          agentId: property?.agentId,
+          branchId: property?.branchId,
+        },
+      });
     });
     if (native)
       return Response.redirect(

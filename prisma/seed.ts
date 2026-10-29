@@ -8,6 +8,10 @@ const description = {
   en: "DEMO — an illustrative property, not a real listing. Address and coordinates indicate only the city.\n\nA light-filled space with natural materials, an open living area and a calm atmosphere. Generous windows bring in daylight. The illustration is AI-generated and does not depict an actual listing.\n\nThis record demonstrates search, the gallery and the inquiry form.",
 };
 async function main() {
+  if (!["demo", "test"].includes(process.env.APP_ENV ?? ""))
+    throw new Error(
+      "DEMO seed requires explicit APP_ENV=demo or test. Use db:bootstrap for an administrator without demo content.",
+    );
   await db.settings.upsert({
     where: { id: "site" },
     create: { id: "site" },
@@ -332,26 +336,6 @@ async function main() {
       },
       update: {},
     });
-  const email = process.env.SEED_ADMIN_EMAIL?.toLowerCase();
-  const password = process.env.SEED_ADMIN_PASSWORD;
-  if (email && password) {
-    if (password.length < 12)
-      throw new Error("SEED_ADMIN_PASSWORD must be at least 12 characters");
-    await db.user.upsert({
-      where: { email },
-      create: {
-        email,
-        name: "Administrator",
-        role: "ADMIN",
-        passwordHash: await hash(password, 12),
-      },
-      update: {},
-    });
-    console.log(
-      "Initial admin ensured (existing passwords are never overwritten).",
-    );
-  } else
-    console.log("No admin credentials supplied; no admin account created.");
   console.log(
     "Demo seed complete: 12 clearly marked properties, 3 fictional agents, 3 articles.",
   );

@@ -16,7 +16,9 @@
     "db:studio": "prisma studio",
     "data:purge": "node --import tsx scripts/purge.ts",
     "format:check": "prettier --check .",
-    "test:prepare": "node --import tsx scripts/test-runner.ts prepare"
+    "test:prepare": "node --import tsx scripts/test-runner.ts prepare",
+    "db:bootstrap": "node --import tsx scripts/bootstrap-admin.ts",
+    "test:bootstrap": "node --import tsx scripts/test-runner.ts bootstrap"
   },
   "repository": {
     "type": "git",

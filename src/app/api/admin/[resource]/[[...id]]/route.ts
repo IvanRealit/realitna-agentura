@@ -1,18 +1,24 @@
-import { can, isResource } from "@/modules/access/policy";
+import {
+  can,
+  isResource,
+  recordScope,
+  inScope,
+  isGlobal,
+} from "@/modules/access/policy";
 import { writeProperty } from "@/modules/properties/service";
 import { db } from "@/lib/db";
-import { hash } from "bcryptjs";
+import { saveUser, userSelect } from "@/modules/identity/users";
+import { writeBranch, requireActiveBranch } from "@/modules/branches/service";
 import { z } from "zod";
 import {
   apiError,
   currentUser,
   HttpError,
-  owns,
   rateLimit,
   readJson,
   sameOrigin,
 } from "@/lib/security";
-import { contentSchema, settingsSchema, userSchema } from "@/lib/validation";
+import { contentSchema, settingsSchema } from "@/lib/validation";
 import type { Prisma } from "@prisma/client";
 type Context = { params: Promise<{ resource: string; id?: string[] }> };
 async function access(req: Request, resource: string, write = false) {
@@ -42,12 +48,19 @@ export async function GET(req: Request, ctx: Context) {
     let data: unknown;
     if (resource === "agents")
       data = await db.user.findMany({
-        where: { active: true },
+        where: {
+          active: true,
+          ...(isGlobal(user.role)
+            ? {}
+            : user.branchId
+              ? { branchId: user.branchId }
+              : { id: user.id }),
+        },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       });
     if (resource === "notifications") {
-      const scope = user.role === "AGENT" ? { agentId: user.id } : {};
+      const scope = recordScope(user);
       data = {
         newLeads: await db.lead.count({ where: { ...scope, status: "NEW" } }),
         latest: await db.lead.findMany({
@@ -61,8 +74,13 @@ export async function GET(req: Request, ctx: Context) {
     if (resource === "properties")
       data = await db.property.findMany({
         where: {
-          ...(user.role === "AGENT" ? { agentId: user.id } : {}),
-          ...(key ? { id: key } : {}),
+          AND: [
+            recordScope(user),
+            key ? { id: key } : {},
+            new URL(req.url).searchParams.get("branchId")
+              ? { branchId: new URL(req.url).searchParams.get("branchId")! }
+              : {},
+          ],
         },
         orderBy: { updatedAt: "desc" },
         take: 200,
@@ -70,26 +88,37 @@ export async function GET(req: Request, ctx: Context) {
     if (resource === "leads")
       data = await db.lead.findMany({
         where: {
-          ...(user.role === "AGENT" ? { agentId: user.id } : {}),
-          ...(key ? { id: key } : {}),
+          AND: [
+            recordScope(user),
+            key ? { id: key } : {},
+            new URL(req.url).searchParams.get("branchId")
+              ? { branchId: new URL(req.url).searchParams.get("branchId")! }
+              : {},
+          ],
         },
         orderBy: { createdAt: "desc" },
         take: 200,
       });
     if (resource === "users")
       data = await db.user.findMany({
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          active: true,
-          phone: true,
-          avatar: true,
-          bio: true,
-        },
+        select: userSelect,
         orderBy: { name: "asc" },
         take: 200,
+      });
+    if (resource === "branches")
+      data = await db.branch.findMany({
+        where: {
+          AND: [
+            !isGlobal(user.role)
+              ? { id: user.branchId ?? "__no_branch__" }
+              : {},
+            key ? { id: key } : {},
+          ],
+        },
+        include: {
+          _count: { select: { users: true, properties: true, leads: true } },
+        },
+        orderBy: { name: "asc" },
       });
     if (resource === "content")
       data = await db.content.findMany({
@@ -103,6 +132,8 @@ export async function GET(req: Request, ctx: Context) {
         orderBy: { createdAt: "desc" },
         take: 200,
       });
+    if (data === undefined)
+      throw new HttpError(404, "Use the dedicated module API");
     return Response.json(data, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     return apiError(e);
@@ -118,6 +149,8 @@ async function mutate(
     if (id && id.length > 1) throw new HttpError(404, "Unknown route");
     const key = id?.[0];
     const user = await access(req, resource, true);
+    if (method === "POST" && key)
+      throw new HttpError(405, "Create at collection URL");
     if (method !== "POST" && !key && resource !== "settings")
       throw new HttpError(400, "Record ID required");
     if (
@@ -140,6 +173,28 @@ async function mutate(
         headers: { "Cache-Control": "no-store" },
       });
     }
+    if (resource === "users") {
+      if (method === "DELETE")
+        throw new HttpError(405, "Deactivate users instead");
+      if (method === "PATCH" && !key)
+        throw new HttpError(400, "User ID required");
+      const result = await saveUser(user, key, body);
+      return Response.json(result, {
+        status: method === "POST" ? 201 : 200,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+    if (resource === "branches") {
+      if (method === "DELETE")
+        throw new HttpError(405, "Archive branches instead");
+      if (method === "PATCH" && !key)
+        throw new HttpError(400, "Branch ID required");
+      const result = await writeBranch(user, key, body);
+      return Response.json(result, {
+        status: method === "POST" ? 201 : 200,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
     const result = await db.$transaction(async (tx) => {
       let data: unknown;
       if (resource === "leads") {
@@ -147,10 +202,10 @@ async function mutate(
           ? await tx.lead.findUnique({ where: { id: key } })
           : null;
         if (!existing) throw new HttpError(404, "Not found");
-        if (!owns(user.role, user.id, existing.agentId))
-          throw new HttpError(403, "Not your lead");
+        if (!inScope(user, existing)) throw new HttpError(403, "Not your lead");
         if (method === "DELETE") {
-          if (user.role !== "ADMIN") throw new HttpError(403, "Admin required");
+          if (!can(user.role, "leads", "delete"))
+            throw new HttpError(403, "Admin required");
           data = await tx.lead.delete({ where: { id: key } });
         } else {
           const v = z
@@ -161,50 +216,29 @@ async function mutate(
             })
             .parse(body);
           if (
-            user.role === "AGENT" &&
+            !can(user.role, "leads", "assign") &&
             v.agentId !== undefined &&
             v.agentId !== existing.agentId
           )
             throw new HttpError(403, "Cannot reassign");
-          if (
-            v.agentId &&
-            !(await tx.user.findFirst({
+          let branchId = existing.branchId;
+          if (v.agentId) {
+            await tx.$queryRaw`SELECT id FROM "User" WHERE id=${v.agentId} FOR UPDATE`;
+            const assigned = await tx.user.findFirst({
               where: { id: v.agentId, active: true },
-            }))
-          )
-            throw new HttpError(400, "Agent unavailable");
-          data = await tx.lead.update({ where: { id: key }, data: v });
-        }
-      }
-      if (resource === "users") {
-        if (method === "DELETE")
-          throw new HttpError(405, "Deactivate users instead");
-        const v = userSchema.parse(body);
-        if (!key && !v.password) throw new HttpError(400, "Password required");
-        if (key === user.id && (!v.active || v.role !== "ADMIN"))
-          throw new HttpError(
-            400,
-            "Cannot revoke your own administrative access",
-          );
-        const { password, ...rest } = v;
-        const input = {
-          ...rest,
-          email: v.email.toLowerCase(),
-          bio: (v.bio ?? {}) as Prisma.InputJsonValue,
-          ...(password ? { passwordHash: await hash(password, 12) } : {}),
-        };
-        if (key) {
-          await tx.session.deleteMany({ where: { userId: key } });
-          data = await tx.user.update({
+              select: { branchId: true },
+            });
+            if (!assigned) throw new HttpError(400, "Agent unavailable");
+            branchId = assigned.branchId;
+            if (!inScope(user, { agentId: v.agentId, branchId }))
+              throw new HttpError(403, "Assignment outside your scope");
+          }
+          await requireActiveBranch(tx, branchId);
+          data = await tx.lead.update({
             where: { id: key },
-            data: input,
-            select: { id: true, name: true },
+            data: { ...v, branchId },
           });
-        } else
-          data = await tx.user.create({
-            data: { ...input, passwordHash: input.passwordHash! },
-            select: { id: true, name: true },
-          });
+        }
       }
       if (resource === "content") {
         if (method === "DELETE")

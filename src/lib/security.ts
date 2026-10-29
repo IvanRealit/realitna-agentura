@@ -1,3 +1,4 @@
+import { consumeFactor } from "@/modules/identity/mfa";
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { db } from "./db";
@@ -17,9 +18,24 @@ export async function currentUser() {
     ? session.user
     : null;
 }
-export async function newSession(userId: string) {
+export async function newSession(
+  userId: string,
+  authVersion?: number,
+  factor = "",
+) {
   const token = randomBytes(32).toString("hex");
   await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id=${userId} FOR UPDATE`;
+    const user = await tx.user.findUnique({ where: { id: userId } });
+    if (
+      !user?.active ||
+      (authVersion !== undefined && user.authVersion !== authVersion)
+    )
+      throw new HttpError(401, "Account changed; sign in again");
+    await consumeFactor(userId, factor, tx);
+    await tx.loginEvent.create({
+      data: { userId, success: true, reason: "AUTHENTICATED" },
+    });
     await tx.session.create({
       data: {
         id: hashToken(token),

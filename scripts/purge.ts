@@ -8,6 +8,10 @@ try {
     const leads = await tx.lead.deleteMany({
       where: { createdAt: { lt: cutoff } },
     });
+    await tx.accountToken.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    });
+    await tx.loginEvent.deleteMany({ where: { createdAt: { lt: cutoff } } });
     await tx.session.deleteMany({ where: { expiresAt: { lt: new Date() } } });
     await tx.rateLimit.deleteMany({ where: { expiresAt: { lt: new Date() } } });
     await tx.auditLog.deleteMany({

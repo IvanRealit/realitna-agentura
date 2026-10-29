@@ -7,6 +7,11 @@ datasource db {
  provider = "postgresql"
 }
 enum Role {
+ SUPER_ADMIN
+ BRANCH_MANAGER
+ COORDINATOR
+ ACCOUNTANT
+ AUDITOR
  ADMIN
  MANAGER
  AGENT
@@ -25,11 +30,37 @@ enum LeadStatus {
  IN_PROGRESS
  CLOSED
 }
+model Branch {
+ id String @id @default(cuid())
+ name String
+ address String @default("")
+ city String
+ phone String @default("")
+ email String @default("")
+ active Boolean @default(true)
+ publicContact Boolean @default(false)
+ commissionBps Int @default(0)
+ version Int @default(1)
+ users User[]
+ properties Property[]
+ leads Lead[]
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+}
 model User {
  id String @id @default(cuid())
  email String @unique
  name String
  passwordHash String
+ branchId String?
+ branch Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict)
+ mfaSecret String?
+ mfaPending String?
+ mfaLastCounter BigInt @default(-1)
+ recoveryHashes String[] @default([])
+ authVersion Int @default(1)
+ tokens AccountToken[]
+ loginEvents LoginEvent[]
  role Role @default(AGENT)
  active Boolean @default(true)
  bio Json @default("{}")
@@ -38,6 +69,7 @@ model User {
  properties Property[]
  leads Lead[]
  sessions Session[]
+ @@index([branchId])
  createdAt DateTime @default(now())
 }
 model Session {
@@ -49,6 +81,8 @@ model Session {
  @@index([expiresAt])
 }
 model Property {
+ branchId String?
+ branch Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict)
  id String @id @default(cuid())
  version Int @default(1)
  slug String @unique
@@ -79,8 +113,11 @@ model Property {
  createdAt DateTime @default(now())
  updatedAt DateTime @updatedAt
  @@index([status, city, transaction])
+ @@index([branchId])
 }
 model Lead {
+ branchId String?
+ branch Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict)
  id String @id @default(cuid())
  name String
  email String
@@ -99,6 +136,7 @@ model Lead {
  createdAt DateTime @default(now())
  updatedAt DateTime @updatedAt
  @@index([agentId, status])
+ @@index([branchId])
 }
 model Content {
  id String @id @default(cuid())
@@ -132,4 +170,24 @@ model RateLimit {
  count Int @default(1)
  expiresAt DateTime
  @@index([expiresAt])
+}
+
+model AccountToken {
+ id String @id
+ userId String
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ kind String
+ authVersion Int
+ expiresAt DateTime
+ createdAt DateTime @default(now())
+ @@index([userId, kind])
+}
+model LoginEvent {
+ id String @id @default(cuid())
+ userId String?
+ user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+ success Boolean
+ reason String
+ createdAt DateTime @default(now())
+ @@index([createdAt])
 }

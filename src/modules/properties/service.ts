@@ -1,10 +1,11 @@
+import { requireActiveBranch } from "@/modules/branches/service";
 import type { Prisma, Role } from "@prisma/client";
 import { db } from "@/lib/db";
 import { HttpError } from "@/lib/security";
 import { propertySchema } from "@/lib/validation";
-import { can, ownsRecord } from "@/modules/access/policy";
+import { can, inScope } from "@/modules/access/policy";
 import { expectedVersion, publicationIssues } from "./rules";
-type Actor = { id: string; role: Role };
+type Actor = { id: string; role: Role; branchId?: string | null };
 type Method = "POST" | "PATCH" | "DELETE";
 export async function writeProperty(
   actor: Actor,
@@ -26,7 +27,7 @@ export async function writeProperty(
       ? await tx.property.findUnique({ where: { id } })
       : null;
     if (id && !existing) throw new HttpError(404, "Property not found");
-    if (existing && !ownsRecord(actor.role, actor.id, existing.agentId))
+    if (existing && !inScope(actor, existing))
       throw new HttpError(403, "Not your property");
     let result;
     if (method === "DELETE") {
@@ -44,7 +45,7 @@ export async function writeProperty(
     } else {
       const v = propertySchema.parse(body);
       if (!can(actor.role, "properties", "publish")) {
-        if (v.agentId !== actor.id)
+        if (!can(actor.role, "properties", "assign") && v.agentId !== actor.id)
           throw new HttpError(403, "Cannot assign another agent");
         if (existing && !["DRAFT", "REVIEW"].includes(existing.status))
           throw new HttpError(
@@ -75,15 +76,19 @@ export async function writeProperty(
         if (issues.length)
           throw new HttpError(422, issues.join(" "), "PUBLICATION_INCOMPLETE");
       }
-      if (
-        !(await tx.user.findFirst({
-          where: { id: v.agentId, active: true },
-          select: { id: true },
-        }))
-      )
-        throw new HttpError(400, "Active agent required");
+      await tx.$queryRaw`SELECT id FROM "User" WHERE id=${v.agentId} FOR UPDATE`;
+      const assigned = await tx.user.findFirst({
+        where: { id: v.agentId, active: true },
+        select: { branchId: true },
+      });
+      if (!assigned) throw new HttpError(400, "Active agent required");
+      const branchId = assigned.branchId;
+      if (!inScope(actor, { agentId: v.agentId, branchId }))
+        throw new HttpError(403, "Assignment outside your scope");
+      await requireActiveBranch(tx, branchId);
       const input = {
         ...v,
+        branchId,
         translations: v.translations as Prisma.InputJsonValue,
         seo: (v.seo ?? {}) as Prisma.InputJsonValue,
       };
