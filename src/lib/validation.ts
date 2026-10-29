@@ -39,6 +39,7 @@ export const propertySchema = z
     rooms: z.number().int().min(0).max(1000),
     status: z.enum([
       "DRAFT",
+      "REVIEW",
       "PUBLISHED",
       "RESERVED",
       "SOLD",

@@ -1,3 +1,4 @@
+import { staffNavigation } from "@/modules/access/policy";
 import { notFound } from "next/navigation";
 import { currentUser } from "@/lib/security";
 import { db } from "@/lib/db";
@@ -21,13 +22,7 @@ export default async function AdminPage({
   if (!user) return <Login brand={settings.brand} />;
   const { path = [] } = await params;
   const resource = path[0] ?? "dashboard";
-  const allowed = [
-    "dashboard",
-    "properties",
-    "leads",
-    ...(user.role !== "AGENT" ? ["content"] : []),
-    ...(user.role === "ADMIN" ? ["users", "settings", "audit"] : []),
-  ];
+  const allowed = staffNavigation(user.role);
   if (path.length > 1 || !allowed.includes(resource)) notFound();
   const owned = user.role === "AGENT" ? { agentId: user.id } : {};
   const [properties, leads, newLeads] = await Promise.all([

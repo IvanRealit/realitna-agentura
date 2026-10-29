@@ -1,8 +1,11 @@
 "use client";
+import { staffNavigation } from "@/modules/access/policy";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Icon } from "./icons";
 type RecordData = Record<string, unknown>;
 type User = { id: string; name: string; role: string };
 const names: Record<string, string> = {
@@ -60,6 +63,8 @@ export function Login({ brand }: { brand: string }) {
         <h1>Vitajte späť.</h1>
         <p>Zabezpečený prístup pre tím. Admin · Manager · Agent</p>
         <form
+          action="/api/auth/login"
+          method="post"
           onSubmit={async (e) => {
             e.preventDefault();
             setBusy(true);
@@ -152,13 +157,13 @@ export function Admin({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
-  const allowed = [
-    "dashboard",
-    "properties",
-    "leads",
-    ...(user.role !== "AGENT" ? ["content"] : []),
-    ...(user.role === "ADMIN" ? ["users", "settings", "audit"] : []),
-  ];
+  const allowed = staffNavigation(user.role);
+  const readOnlyProperty = Boolean(
+    editing &&
+    resource === "properties" &&
+    user.role === "AGENT" &&
+    !["DRAFT", "REVIEW"].includes(String(editing.status)),
+  );
   const load = useCallback(async () => {
     if (resource === "dashboard") return;
     setBusy(true);
@@ -216,7 +221,9 @@ export function Admin({
       const data = await r.json();
       if (!r.ok)
         throw new Error(
-          data.error +
+          (data.code === "VERSION_CONFLICT"
+            ? "Záznam medzitým upravil kolega. Rozpísané údaje zostali v editore; pred ďalším uložením načítajte aktuálnu verziu."
+            : data.error) +
             (data.issues
               ? `: ${data.issues.map((i: { path: string[]; message: string }) => `${i.path.join(".")}: ${i.message}`).join("; ")}`
               : ""),
@@ -237,6 +244,8 @@ export function Admin({
     try {
       const r = await fetch(`/api/admin/${resource}/${row.id}`, {
         method: "DELETE",
+        headers:
+          resource === "properties" ? { "If-Match": `"${row.version}"` } : {},
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error);
@@ -286,16 +295,23 @@ export function Admin({
         <p>
           {user.name} · {user.role}
         </p>
-        <button
-          className="button outline"
-          style={{ color: "white", borderColor: "#ffffff55" }}
-          onClick={async () => {
+        <form
+          action="/api/auth/logout"
+          method="post"
+          onSubmit={async (e) => {
+            e.preventDefault();
             await fetch("/api/auth/logout", { method: "POST" });
             router.refresh();
           }}
         >
-          Odhlásiť sa
-        </button>
+          <button
+            type="submit"
+            className="button outline"
+            style={{ color: "white", borderColor: "#ffffff55" }}
+          >
+            Odhlásiť sa
+          </button>
+        </form>
       </aside>
       <main className="admin-main">
         <div className="admin-top">
@@ -366,14 +382,19 @@ export function Admin({
             {editing && (
               <form className="admin-editor" onSubmit={save}>
                 <h2>{editing.id ? "Upraviť záznam" : "Nový záznam"}</h2>
-                <Editor
-                  resource={resource}
-                  data={editing}
-                  setData={setEditing}
-                  user={user}
-                />
+                <fieldset className="editor-fields" disabled={readOnlyProperty}>
+                  <Editor
+                    resource={resource}
+                    data={editing}
+                    setData={setEditing}
+                    user={user}
+                  />
+                </fieldset>
                 <div className="button-row">
-                  <button className="button" disabled={busy}>
+                  <button
+                    className="button"
+                    disabled={busy || readOnlyProperty}
+                  >
                     {busy ? "…" : "Uložiť zmeny"}
                   </button>
                   <button
@@ -475,6 +496,24 @@ export function Admin({
           </>
         )}
       </main>
+      <nav className="crm-bottom-nav" aria-label="Rýchla navigácia CRM">
+        {[
+          ["dashboard", "Prehľad", "menu"],
+          ["properties", "Ponuky", "pin"],
+          ["leads", "Dopyty", "check"],
+        ]
+          .filter(([key]) => allowed.includes(key))
+          .map(([key, title, icon]) => (
+            <Link
+              key={key}
+              href={key === "dashboard" ? "/admin" : `/admin/${key}`}
+              aria-current={resource === key ? "page" : undefined}
+            >
+              <Icon name={icon} />
+              <span>{title}</span>
+            </Link>
+          ))}
+      </nav>
     </div>
   );
 }
@@ -628,8 +667,20 @@ function Editor({
           {select(
             "status",
             "Publikovanie",
-            ["DRAFT", "PUBLISHED", "RESERVED", "SOLD", "RENTED", "ARCHIVED"],
-            user.role === "AGENT",
+            user.role === "AGENT" &&
+              ["DRAFT", "REVIEW"].includes(String(data.status))
+              ? ["DRAFT", "REVIEW"]
+              : [
+                  "DRAFT",
+                  "REVIEW",
+                  "PUBLISHED",
+                  "RESERVED",
+                  "SOLD",
+                  "RENTED",
+                  "ARCHIVED",
+                ],
+            user.role === "AGENT" &&
+              !["DRAFT", "REVIEW"].includes(String(data.status)),
           )}
           <AgentSelect
             value={String(data.agentId ?? "")}
@@ -654,6 +705,11 @@ function Editor({
           {translate("translations")}
           {translate("seo")}
         </div>
+        <p className="admin-hint">
+          Koncept → REVIEW (na kontrolu) → publikovanie manažérom. Publikovanú
+          ponuku môže agent meniť až po vrátení do konceptu. Pred publikovaním
+          treba fotografiu, kladnú cenu a úplný slovenský opis.
+        </p>
         <h2>Fotografie</h2>
         <p className="admin-hint">
           JPEG, PNG alebo WebP, najviac 8 MB. Súbory sa overia a prevedú na WebP
@@ -666,6 +722,7 @@ function Editor({
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              capture="environment"
               onChange={async (e) => {
                 const f = e.target.files?.[0];
                 if (!f) return;

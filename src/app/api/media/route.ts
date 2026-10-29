@@ -1,3 +1,4 @@
+import { can } from "@/modules/access/policy";
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -15,6 +16,8 @@ export async function POST(req: Request) {
   try {
     const user = await currentUser();
     if (!user) throw new HttpError(401, "Sign in required");
+    if (!can(user.role, "media", "create"))
+      throw new HttpError(403, "Media permission required");
     if (!sameOrigin(req)) throw new HttpError(403, "Invalid origin");
     if (!(await rateLimit(`upload:${user.id}`, 30, 3600000)))
       throw new HttpError(429, "Try again later");
