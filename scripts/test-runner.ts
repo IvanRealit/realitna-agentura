@@ -34,6 +34,7 @@ try {
     TEST_BASE_URL: target.baseUrl,
     SITE_URL: target.baseUrl,
     APP_ENV: "test",
+    MFA_ENCRYPTION_KEY: "11".repeat(32),
     TEST_ISOLATION_ID: randomUUID(),
     NEXT_DIST_DIR: target.distDir,
     UPLOAD_DIR: target.mediaDirectory,
@@ -56,6 +57,12 @@ try {
       ...env,
       SITE_URL: "http://build-only.invalid",
     });
+  } else if (action === "bootstrap") {
+    await run(
+      process.execPath,
+      ["--import", "tsx", "tests/integration/bootstrap.ts"],
+      env,
+    );
   } else if (action === "e2e") {
     await run(
       process.execPath,
@@ -66,7 +73,7 @@ try {
       ],
       env,
     );
-  } else throw new TestEnvironmentError("Expected prepare or e2e.");
+  } else throw new TestEnvironmentError("Expected prepare, bootstrap or e2e.");
 } catch (e) {
   console.error(
     e instanceof TestEnvironmentError
