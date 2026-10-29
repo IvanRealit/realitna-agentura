@@ -253,7 +253,16 @@ export function LeadForm({
     }
   }
   return (
-    <form className="lead-form" onSubmit={submit}>
+    <form
+      className="lead-form"
+      onSubmit={submit}
+      action="/api/leads"
+      method="post"
+    >
+      <input type="hidden" name="locale" value={l} />
+      {propertyId && (
+        <input type="hidden" name="propertyId" value={propertyId} />
+      )}
       <div className="form-grid">
         <label>
           {d.name}

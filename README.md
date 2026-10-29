@@ -39,23 +39,30 @@ Admin can create/deactivate users, change roles and reset passwords in the works
 
 All 12 seeded properties, 3 fictional agents and 3 articles are demonstrative. Coordinates identify city centers, **not real property locations**. The bundled AI-generated interior and crops are illustrative; repeated imagery is deliberate demo data, not evidence of actual properties.
 
-## Checks
+## Platform 2.0 and architecture
+
+Development continues in this repository as a modular monolith, retaining the public/staff/API boundaries. Read the [audited baseline](docs/audit/EXISTING_SYSTEM.md), [module ownership and architecture](docs/ARCHITECTURE.md), [feature matrix](docs/FEATURE_MATRIX.md), and [staged roadmap](docs/ROADMAP.md). Missing modules are not presented as working CRM features.
+
+## Checks — isolated test database required
 
 ```sh
 npm run lint
 npm run typecheck
 npm test
 npm run build
-# With the production server running:
+# Start only the separate, ephemeral test PostgreSQL service (port 55432):
+docker compose -p realitna-test -f infrastructure/docker/compose.test.yml up -d --wait
+# Set TEST_DATABASE_URL using .env.example or the process environment.
+npm run test:prepare
 npx playwright install chromium
 npm run test:e2e
-# Or let the suite start the already-built server:
-PLAYWRIGHT_START_SERVER=true npm run test:e2e
-# In this cloud image only, use its installed Chromium:
+# In this managed cloud image, use the installed browser:
 PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium npm run test:e2e
 ```
 
-The suite tests real HTTP + PostgreSQL: anonymous/cross-origin rejection, role/ownership boundaries, draft visibility, publication, translation fallback, lead validation/assignment, uploads and session revocation. Chromium covers desktop/mobile browsing, favorites and consent. Reports/screenshots are generated under `playwright-report/` and `test-results/` and are ignored by Git. CI runs the same checks against a fresh PostgreSQL service. When Playwright starts its private server, it acts as trusted ingress with unique test IPs, keeping repeated tests out of the shared development rate-limit bucket. Do not expose that test server publicly.
+`TEST_DATABASE_URL` must name a separate loopback `realitna*_test` database. There is **no fallback** to `DATABASE_URL`; matching application/test targets are rejected even across localhost aliases and different credentials. The runner sets its own port (3101), `.next-test` build, `data/test-uploads`, test environment marker and trusted test ingress. Playwright owns its server and refuses an existing listener. Global setup verifies that the server belongs to this test run and checks the actual database name before fixture writes. Direct `npx playwright test` without the isolation runner is rejected. Never point test configuration at production.
+
+Tests cover real HTTP/PostgreSQL workflows, no-JavaScript native form submission, and existing public/CRM/editor layouts at 320, 360, 375, 390, 430, 768, 1024 and 1440 px. This is not a full WCAG audit or a real iPhone Safari test. Reports under `playwright-report/` and `test-results/` are ignored by Git. Current evidence is in [TEST_REPORT](docs/TEST_REPORT.md). CI provisions a fresh PostgreSQL service and uses the same guarded workflow; a hosted run must be observed before claiming CI is green.
 
 ## Configuration and deployment
 

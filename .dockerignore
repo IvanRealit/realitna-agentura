@@ -8,3 +8,19 @@ public/uploads
 coverage
 test-results
 playwright-report
+
+# Runtime data and private material never belong in image build context.
+data
+private
+backups
+**/backups
+.next-test
+.secrets
+.ssh
+.aws
+*.pem
+*.key
+*.dump
+*.backup
+*.tar
+*.tar.gz

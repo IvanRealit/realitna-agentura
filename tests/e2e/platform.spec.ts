@@ -6,7 +6,9 @@ import {
 } from "@playwright/test";
 import { randomUUID, randomBytes } from "node:crypto";
 import { hash } from "bcryptjs";
+import { assertIsolatedTestProcess } from "../../src/config/test-environment";
 import { db } from "../../src/lib/db";
+assertIsolatedTestProcess();
 const suffix = randomUUID().slice(0, 8);
 const password = randomBytes(24).toString("hex");
 const base = process.env.TEST_BASE_URL ?? "http://localhost:3000";
@@ -110,7 +112,14 @@ test.afterAll(async () => {
   await db.lead.deleteMany({
     where: {
       OR: [
-        { email: `test-lead-${suffix}@example.invalid` },
+        {
+          email: {
+            in: [
+              `test-lead-${suffix}@example.invalid`,
+              `test-native-${suffix}@example.invalid`,
+            ],
+          },
+        },
         { id: leadId ?? "none" },
       ],
     },
@@ -153,6 +162,9 @@ test("public data, localized canonical/hreflang, filters and 404", async ({
   expect(html).toContain('hrefLang="sk"');
   expect(html).toContain("DEMO");
   expect((await request.get("/sk/not-a-page")).status()).toBe(404);
+  expect(await (await request.get("/robots.txt")).text()).toContain(
+    `${base}/sitemap.xml`,
+  );
 });
 test("rejects anonymous access and cross-origin writes", async ({
   request,
@@ -428,4 +440,82 @@ test("gallery supports keyboard dismissal and maps stay opt-in", async ({
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).not.toBeVisible();
   expect(externalMaps).toBe(0);
+});
+
+test("native form POST persists a lead with JavaScript disabled and keeps personal fields out of the URL", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    javaScriptEnabled: false,
+    baseURL: base,
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto("/en/contact");
+    await page.getByLabel("Name", { exact: true }).fill("DEMO Native");
+    await page
+      .getByLabel("Email", { exact: true })
+      .fill(`test-native-${suffix}@example.invalid`);
+    await page
+      .getByLabel("Your message", { exact: true })
+      .fill("A real native form submission without browser JavaScript.");
+    await page.locator("input[name=consent]").check();
+    await page.getByRole("button", { name: "Send request" }).click();
+    await page.waitForURL(`${base}/en/contact?request=received`);
+    expect(page.url()).not.toContain("email=");
+    await expect(
+      page.getByRole("status").filter({ hasText: "Thank you." }),
+    ).toContainText("Thank you. We have received your request.");
+    expect(
+      await db.lead.count({
+        where: { email: `test-native-${suffix}@example.invalid` },
+      }),
+    ).toBe(1);
+  } finally {
+    await context.close();
+  }
+});
+
+test("public site and staff property editor fit all eight required viewport widths", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    baseURL: base,
+    storageState: await admin.storageState(),
+  });
+  try {
+    const page = await context.newPage();
+    const errors: string[] = [];
+    page.on("pageerror", (e) => errors.push(e.message));
+    for (const width of [320, 360, 375, 390, 430, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const route of [
+        "/en",
+        "/en/properties",
+        "/admin",
+        "/admin/properties",
+      ]) {
+        await page.goto(route);
+        await expect(page.locator("h1")).toBeVisible();
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+          `${route} at ${width}px must not overflow`,
+        ).toBe(true);
+      }
+      await page.getByRole("button", { name: "+ Nový záznam" }).click();
+      await expect(page.getByLabel("URL slug", { exact: true })).toBeVisible();
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+        `Editor at ${width}px must not overflow`,
+      ).toBe(true);
+      await page.getByRole("button", { name: "Zrušiť", exact: true }).click();
+    }
+    expect(errors).toEqual([]);
+  } finally {
+    await context.close();
+  }
 });

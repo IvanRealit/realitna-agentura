@@ -9,13 +9,14 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test",
+    "test:e2e": "node --import tsx scripts/test-runner.ts e2e",
     "db:generate": "node --import tsx scripts/generate-client.ts",
     "db:migrate": "node --import tsx scripts/migrate.ts",
     "db:seed": "node --import tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "data:purge": "node --import tsx scripts/purge.ts",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:prepare": "node --import tsx scripts/test-runner.ts prepare"
   },
   "repository": {
     "type": "git",

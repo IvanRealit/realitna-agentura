@@ -1,14 +1,17 @@
 import { randomInt } from "node:crypto";
 import "dotenv/config";
 import { defineConfig } from "@playwright/test";
+import { assertIsolatedTestProcess } from "./src/config/test-environment";
+const target = assertIsolatedTestProcess();
 export default defineConfig({
   testDir: "./tests/e2e",
+  globalSetup: "./tests/support/global-setup.ts",
   fullyParallel: false,
   workers: 1,
   timeout: 30000,
   retries: 0,
   use: {
-    baseURL: process.env.TEST_BASE_URL ?? "http://localhost:3000",
+    baseURL: target.baseUrl,
     trace: "retain-on-failure",
     extraHTTPHeaders: {
       "x-forwarded-for": `127.${randomInt(1, 254)}.${randomInt(1, 254)}.${randomInt(1, 254)}`,
@@ -18,17 +21,11 @@ export default defineConfig({
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
       : {},
   },
-  webServer:
-    process.env.PLAYWRIGHT_START_SERVER === "true"
-      ? {
-          command: "npm start",
-          // The private test runner acts as trusted ingress, using unique test IPs
-          // so repeated suites do not share the real development login bucket.
-          env: { TRUST_PROXY: "true" },
-          url: process.env.TEST_BASE_URL ?? "http://localhost:3000",
-          timeout: 60000,
-          reuseExistingServer: false,
-        }
-      : undefined,
+  webServer: {
+    command: `node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port ${target.port}`,
+    url: `${target.baseUrl}/api/health`,
+    timeout: 60000,
+    reuseExistingServer: false,
+  },
   reporter: [["list"], ["html", { open: "never" }]],
 });

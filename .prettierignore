@@ -4,3 +4,5 @@ package-lock.json
 public
 playwright-report
 test-results
+
+.next-test
