@@ -41,3 +41,7 @@ Git proxy працює; api.github.com і research domains досі не вкл�
 5. D–F: private documents/finance/analytics; real backup/restore and MFA enforcement/key recovery; full staging/VPS stack, Safari та hosted CI.
 
 Full demo dataset 5 agents/3 branches/30 clients/25 properties/20 leads/15 deals/30 tasks/15 viewings додається лише після відповідних моделей і safe DEMO clear. Зараз збережено існуючі 12/3 demo listings/agents та 3 articles; фіктивні Client/Deal JSON-макети не створювалися.
+
+## Підсумок Git
+
+Feature branch надіслана в origin. Draft PR create спроба завершилась `Post https://api.github.com/graphql: Forbidden`; фактичний PR не створено. Підготовлений reviewable description: STAGE_A_PR_DESCRIPTION.md. Форма створення (не PR): https://github.com/IvanRealit/realitna-agentura/compare/main...codex/enterprise-foundation?expand=1 . Main не змінювався/не merge, production не публікувався. Після застосування збережених environment egress settings повторіть PR create та перевірте hosted CI.
