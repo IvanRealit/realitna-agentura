@@ -1,3 +1,5 @@
+> Historical first-stage handoff. Current continuation: [Stage A](STAGE_A_HANDOFF.md). PR #3 was merged into main fc6ce9f before Task #2.
+
 # Handoff — Platform 2.0 foundation, 2026-10-29
 
 Branch: `codex/platform-2-foundation`, base main `9dae815`. Completed audit + bounded foundation increment; full master scope remains ROADMAP. Do not merge/deploy automatically.

@@ -11,3 +11,12 @@
 - Additive migration зберігає наявні записи; існуючі маршрути збережено. API PATCH/DELETE property тепер потребує version/If-Match.
 
 Повний CRM 2.0, сім ролей/філії, документи/фінанси/AML/backup та інтеграції залишаються roadmap; фактичні тести — TEST_REPORT.
+
+## 2026-10-29 — Завдання №2, етап A
+
+- Branches, сім ролей + legacy MANAGER, scoped API/SSR, safe assignment/archive/transfer guards.
+- User lifecycle/profile/password, one-use invites/reset tokens, session management та login events.
+- Encrypted TOTP/recovery codes із replay protection та invalidation всіх sessions при enrollment/reset.
+- Окремий first-owner bootstrap, explicit existing-admin promotion, seed production guard.
+- Mobile Branch/Security UI, disposable bootstrap integration та розширені HTTP regression tests.
+- Clients/Deals та інші B–F модулі ще не реалізовані.

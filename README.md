@@ -1,6 +1,6 @@
 # DOMOV — real estate platform for Slovakia
 
-Next.js App Router · TypeScript · Tailwind CSS · PostgreSQL · Prisma. Public SK/UK/EN website, staff workspace, CRM and content publishing. The provisional brand is editable in **Admin → Nastavenia**. No production deployment has been performed.
+Next.js App Router · TypeScript · Tailwind CSS · PostgreSQL · Prisma. Public SK/UK/EN website, staff workspace, persisted inquiries, branches and content publishing. Full Clients/Deals CRM is the next stage. The provisional brand is editable in **Admin → Nastavenia**. No production deployment has been performed.
 
 ## Run locally
 
@@ -23,9 +23,9 @@ For an existing PostgreSQL server, skip Docker and set `DATABASE_URL`. Use a ded
 
 ### First administrator
 
-Set `SEED_ADMIN_EMAIL` and a unique `SEED_ADMIN_PASSWORD` of at least 12 characters **in your local `.env` or secure environment settings**, then run `npm run db:seed`. Seed never overwrites an existing user's password. Remove these bootstrap variables after creating the account. There is no public registration or default password. Demo agents have random, undisclosed passwords and `.invalid` contact addresses.
+Set `SEED_ADMIN_EMAIL` and a unique `SEED_ADMIN_PASSWORD` of at least 12 characters **in your local `.env` or secure environment settings**, then run `npm run db:bootstrap`. This creates the first Super Admin without DEMO content and refuses to overwrite existing accounts. For an existing legacy ADMIN only, use `npm run db:bootstrap -- --promote-existing` with that account’s current credentials; it promotes the first owner explicitly, revokes sessions and refuses if an owner already exists. Remove these bootstrap variables after creating the account. There is no public registration or default password. `db:seed` now requires explicit APP_ENV=demo or test and never creates an administrator. Demo agents have random, undisclosed passwords and `.invalid` contact addresses.
 
-Admin can create/deactivate users, change roles and reset passwords in the workspace. A reset revokes that user's sessions. Self-demotion/deactivation is blocked. Agents can create their own drafts and edit owned DRAFT/REVIEW records, but cannot publish, change DEMO/featured flags, assign another agent or delete properties. Publish requires REVIEW and the quality gate. Property PATCH/DELETE requires its current version (or quoted If-Match header); stale edits return 409 without overwriting data. Managers manage properties, content and all leads; only Admin manages users, settings, the audit log and lead deletion.
+Seven roles are supported: Super Admin, Admin, Branch Manager, Agent, Coordinator, Accountant and Auditor; legacy MANAGER retains its company-wide scope. Admin can create/deactivate users and assign branches/roles; only Super Admin manages other Super Admin accounts. A reset revokes that user's sessions. Self-demotion/deactivation is blocked. Agents can create their own drafts and edit owned DRAFT/REVIEW records, but cannot publish, change DEMO/featured flags, assign another agent or delete properties. Publish requires REVIEW and the quality gate. Property PATCH/DELETE requires its current version (or quoted If-Match header); stale edits return 409 without overwriting data. Legacy Managers retain their existing company-wide access; Branch Managers are scoped to their branch. Accountants have account security access until Finance is implemented; Auditors cannot change business records. See [permission matrix](docs/security/PERMISSION_MATRIX.md).
 
 ## Implemented workflow
 
@@ -54,6 +54,7 @@ npm run build
 docker compose -p realitna-test -f infrastructure/docker/compose.test.yml up -d --wait
 # Set TEST_DATABASE_URL using .env.example or the process environment.
 npm run test:prepare
+npm run test:bootstrap
 npx playwright install chromium
 npm run test:e2e
 # In this managed cloud image, use the installed browser:
@@ -76,4 +77,14 @@ Legal pages are explicitly **drafts requiring Slovak legal review**. No analytic
 
 [User guide (UK)](docs/USER_GUIDE_UK.md) · [Admin guide (UK)](docs/ADMIN_GUIDE_UK.md) · [Database](docs/DATABASE_SCHEMA.md) · [Permissions](docs/security/PERMISSION_MATRIX.md) · [Backup/restore blocker](docs/BACKUP_RESTORE.md) · [Integrations](docs/INTEGRATIONS.md) · [VPS preparation](docs/deployment/VPS_DEPLOYMENT.md).
 
-Platform 2.0 is staged work. Clients/deals/branches/calendar/private documents/finance/AML, MFA and verified off-site backups are not yet implemented; the existing staff workspace is not the full requested CRM.
+Platform 2.0 is staged work. Clients/deals/calendar/private documents/finance/AML and verified off-site backups are not yet implemented; the existing staff workspace is not the full requested CRM.
+
+## Enterprise foundation: account security and branches
+
+- `/admin/branches`: persisted branch CRUD/archive, contact fields, configurable commission basis points, live counts. Archive is blocked with active staff/listings/open leads; no destructive branch deletion. Branch transfer requires active records to be reassigned first.
+- `/admin/users`: roles, branch assignment, blocking and password updates revoke sessions/tokens. Existing records remain unassigned to a branch until deliberately assigned; migration does not infer branches from cities.
+- `/admin/security`: own profile/password, sessions, login history, optional TOTP enrollment and one-time recovery codes. Admin issues invitation/reset tokens with current-password reauthentication. Email delivery is not configured: use a verified secure channel. Recipient enters the token at `/account/activate`, never in a URL.
+- Set `MFA_ENCRYPTION_KEY` to 32 cryptographically random bytes encoded as 64 hex characters in secure runtime environment settings. Never commit or regenerate a configured key casually. Without it enrollment is disabled. Keep an independent secure recovery copy; key rotation is not automated. Enrollment invalidates all sessions and shows recovery codes once. MFA is available but existing administrators are not automatically forced to enroll; complete enrollment before real customer data.
+- `npm run test:bootstrap` uses a disposable scratch database created via the guarded local test target. The test DB user needs CREATEDB for this check; application production users must not have that privilege.
+
+Current scope/status and remaining stages: [Stage A handoff](docs/operations/STAGE_A_HANDOFF.md), [identity API](docs/architecture/IDENTITY_API.md), [security review](docs/security/IDENTITY_REVIEW.md).

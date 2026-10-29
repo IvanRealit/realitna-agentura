@@ -66,3 +66,18 @@
 ## Перевірений інкремент цієї сесії
 
 Central legacy policy винесено у modules/access; property writes — modules/properties. Є REVIEW, базовий publication quality gate, version/If-Match conflicts, atomic audit price/status/version metadata. Залишаються тільки три legacy ролі; це не branch scoping. Нижня CRM navigation та 16px mobile controls додані, 8-width regression виконано; real iOS/PWA/offline ще не перевірені. Native lead/login/logout більше не надсилають приватні поля через GET.
+
+## Завдання №2 — перевірений етап A
+
+| Можливість                                              | Поточний стан | Межі                                                                                |
+| ------------------------------------------------------- | ------------- | ----------------------------------------------------------------------------------- |
+| Seven roles + legacy MANAGER                            | є             | Accountant поки тільки account security; Finance відсутній                          |
+| Branch CRUD/archive/contact/commission settings/counts  | є             | немає Deals guard до появи Deal; немає public branch pages                          |
+| User create/edit/block/roles/branch/session revocation  | є             | transfer active inventory потребує попереднього reassignment                        |
+| Branch/own-agent read/write/query scope                 | є             | Clients/Deals ще немає, їхній scope треба реалізувати окремо                        |
+| Invitations/reset/password/profile/sessions/login log   | є             | manual verified token delivery; email не налаштований                               |
+| TOTP + encrypted secret + one-use recovery              | є             | потрібен runtime key; mandatory enrollment/key rotation/MFA reset не автоматизовано |
+| Safe first-owner bootstrap / production demo-seed guard | є             | existing ADMIN promotion лише явною CLI командою з current password                 |
+| Clients/Deals/Operations/Business/Backup                | план          | наступні B–F, не представлені фіктивними екранами                                   |
+
+Цей розділ уточнює historical baseline rows вище. Повна enterprise CRM, verified backups і production readiness не заявляються.

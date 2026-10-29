@@ -23,4 +23,12 @@ erDiagram
 
 `202610290001_property_review`: додає REVIEW, version=1 та audit metadata={}; без видалення або перейменування наявних полів. PATCH/DELETE Property потребують поточної version; умовний запис і audit відбуваються в одній транзакції. Price/status changes зберігаються в audit metadata, але це ще не окрема повна revision/price-history модель.
 
-Немає таблиць Client, Branch, Deal, Calendar, Document, Finance, AML або Backup. Lead не називати повною CRM клієнтів. Сім ролей і branch scope потребують окремої міграції, міграційного плану та negative access tests. JSON translations мають fallback до SK; приватні майбутні поля не включати до public DTO.
+Немає таблиць Client, Deal, Calendar, Document, Finance, AML або Backup. Lead не називати повною CRM клієнтів. Сім ролей і branch scope додані в етапі A; MANAGER лишається legacy compatibility. JSON translations мають fallback до SK; приватні майбутні поля не включати до public DTO.
+
+## 202610290002_enterprise_identity
+
+Additive migration додає Branch, AccountToken, LoginEvent; User.branchId + encrypted MFA/pending, monotonic counter/recovery hashes/authVersion; Property.branchId і Lead.branchId. Existing users/properties/leads лишаються з null branchId без вигаданого backfill, старі ролі не змінюються. Нові enum values додаються, не використовуються в тій самій міграційній транзакції. FK Branch onDelete Restrict, AccountToken/User Cascade, LoginEvent/User SetNull. Індекси branchId та token/user/login time.
+
+Branch: name/address/city/phone/email/active/publicContact/commissionBps/version/timestamps. Менеджер — User.role=BRANCH_MANAGER + branchId, працівники — той самий FK. PublicContact є persisted setting, публічна сторінка філій ще не реалізована. CommissionBps — налаштування, не готовий finance calculation.
+
+AccountToken: SHA256 id, kind INVITE/RESET, user/authVersion/expiry; raw token не зберігається. LoginEvent: nullable userId, success/reason/time без паролів, email або IP. `data:purge` очищає expired tokens і login events за configured retentionDays.

@@ -1,6 +1,6 @@
 # Безпека: перевірене та невирішене
 
-Існуючі bcrypt passwords, hashed random sessions, HttpOnly/SameSite cookies, HTTPS Secure enforcement, Origin checks, DB-backed rate limits, Zod validation, parameterized SQL, bounded bodies та image decode/re-encode зберігаються. Baseline не має MFA/TOTP чи семи ролей/branch scope.
+Існуючі bcrypt passwords, hashed random sessions, HttpOnly/SameSite cookies, HTTPS Secure enforcement, Origin checks, DB-backed rate limits, Zod validation, parameterized SQL, bounded bodies та image decode/re-encode зберігаються. Historical baseline не мав MFA/TOTP чи семи ролей/branch scope; вони додані в етапі A (див. security/IDENTITY_REVIEW.md).
 
 ## Поточні safety gates
 
@@ -16,4 +16,6 @@ AUD-005/006: central legacy policy і optimistic property writes реалізо�
 
 ## Release blockers
 
-Немає перевіреного encrypted off-site backup/restore, production MFA, private documents ACL, branch isolation або externally observed hosted CI у цій сесії. GitHub не є backup даних. Не робити destructive restore або deploy без погодженого runbook і підтвердження адміністратора. Значення секретів не включати в архіви, логи, чат, PR чи тестові artifacts.
+Немає перевіреного encrypted off-site backup/restore, private documents ACL або externally observed hosted CI у цій сесії. Branch isolation і TOTP перевірені на тестовій БД; production enrollment/key custody ще потребують налаштування. GitHub не є backup даних. Не робити destructive restore або deploy без погодженого runbook і підтвердження адміністратора. Значення секретів не включати в архіви, логи, чат, PR чи тестові artifacts.
+
+Поточний детальний security review: [Identity](security/IDENTITY_REVIEW.md), [permissions](security/PERMISSION_MATRIX.md). Запрошення/reset не доставляються автоматично; plaintext secrets не логуються/не зберігаються браузером. Production MFA enforcement/recovery policy потребує окремого rollout.

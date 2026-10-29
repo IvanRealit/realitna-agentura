@@ -17,7 +17,7 @@ Create separate development, staging and production databases and storage. Use a
 - `COOKIE_SECURE=true`: mandatory on public HTTPS deployments. Local HTTP may use false.
 - `TRUST_PROXY=true`: only with an ingress that replaces `X-Forwarded-For` and prevents direct access. Otherwise leave false.
 - `UPLOAD_DIR`: persistent directory accessible to the unprivileged application user, outside the immutable bundle; use `/app/data/uploads` in Docker.
-- `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`: one-time initial account; enter securely, seed once, remove. Never bake into an image.
+- `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`: one-time initial owner; enter securely, run db:bootstrap once, remove. Never bake into an image.
 - `NEXT_TELEMETRY_DISABLED=1`: disables Next.js build telemetry.
 - `POSTGRES_PASSWORD`: only for local Compose database provisioning.
 
@@ -27,7 +27,7 @@ Create separate development, staging and production databases and storage. Use a
 2. Back up the live database and confirm the last restore drill succeeded.
 3. Build `npm ci --ignore-scripts && npm run build`. The build does not require a database connection; requests do.
 4. Apply `npm run db:migrate` once against the target database. The runner uses a lock, hashes and transactions and can safely be rerun. Do not edit applied migration files or mix unreviewed migration runners.
-5. For a new **staging** environment, run `npm run db:seed`. For production, bootstrap the first administrator with a reviewed script or seed, then **archive/delete all DEMO listings and remove demo team/blog content** before public release. The shipped seed always includes demo content; it is not a production content import.
+5. For a new **staging** environment, run `npm run db:seed`. For production, bootstrap the first owner with `npm run db:bootstrap` (no demo content), then **archive/delete all DEMO listings and remove demo team/blog content** before public release. The shipped seed always includes demo content; it is not a production content import.
 6. Start `npm start`, verify `/api/health`, login/logout, one real authorized property workflow, a test inquiry and image persistence after a restart.
 7. Place behind the trusted HTTPS ingress, set request-body limits to at most 10 MB, establish timeouts and security headers. Add HSTS only after HTTPS works for all required subdomains. The app sets CSP, anti-framing, nosniff, referrer and permissions headers; adapt CSP deliberately for any future providers. Do not disable it globally.
 8. With the owner's explicit approval, point DNS and release. Nothing in this repository automatically publishes production.
@@ -50,7 +50,7 @@ The Docker image runs as `node`, not root. Migration/seed CLI dependencies are r
 
 Use the hosting provider's required A/AAAA or CNAME records for an owned domain, configure one canonical www/apex variant and redirect the other permanently. Wait for validation and issue managed TLS certificates with automatic renewal. Confirm TLS, redirects, canonical and hreflang use the same origin. Review SPF/DKIM/DMARC only when an actual email provider is integrated; forms currently save to CRM and do not send mail.
 
-Monitor HTTP error rate, latency, database connectivity, storage/disk usage and failed logins. Logs must redact inquiry content and credentials. Restrict database and backup access. Rate limits require the shared PostgreSQL store. Staff use named accounts and least-privilege roles; add MFA/SSO before higher-risk production use as appropriate.
+Monitor HTTP error rate, latency, database connectivity, storage/disk usage and failed logins. Logs must redact inquiry content and credentials. Restrict database and backup access. Rate limits require the shared PostgreSQL store. Staff use named accounts and least-privilege roles; configure MFA_ENCRYPTION_KEY and enroll administrators before real customer data.
 
 ## Backups and privacy operations
 

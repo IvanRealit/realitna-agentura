@@ -45,3 +45,21 @@
 Перші browser прогони виявили помилку exact-name селектора select та shared fixture після worker restart; виправлено role-based selector і незалежний concurrency fixture. Missing-version case відокремлено від invalid publication transition. Фінальний повний прогін успішний, assertions не вимикались. Shell sandbox не дозволяв local socket/server/audit network, повторено через дозволене environment execution.
 
 Hosted CI, повний Docker image rebuild цієї фази, реальний iOS, encrypted backup/restore, full VPS та production не перевірені. Docker context canary — окрема перевірка виключення даних, не full-image runtime test.
+
+## Завдання №2 — етап A (29.10.2026)
+
+Baseline: main fc6ce9f (merged PR #3), clean tree, lint/typecheck/48 unit passed before edits.
+
+- 62 unit tests / 5 files passed: existing domain/security/isolation, seven-role/scopes, bcrypt 72-byte boundary, RFC6238 SHA1 vectors, encrypted secret tampering/wrong-key rejection.
+- Full browser/HTTP/PostgreSQL suite: **20/20 passed** (~1 min), isolated realitna_test DB/build/server/media. Includes branches/direct-ID/query filters/assignment, role escalation denial, blocked account/session revocation, one-use invite/reset concurrent redemption, expired/superseded tokens, own password changes, MFA enrollment/replay/recovery/reset protection, real branch/profile browser saves, mobile widths plus all 14 prior regressions.
+- `test:bootstrap`: passed on newly created disposable scratch DB: migrate, first owner without DEMO, repeat refusal/no password overwrite, production seed refusal, wrong-password legacy promotion refusal and explicit authenticated promotion success. Scratch DB dropped after check, not production.
+- Lint/typecheck/format check passed; test and normal builds passed. npm audit reports 0 known vulnerabilities at check time.
+- Local additive migration preservation: User/Property/Lead/Content/Settings old columns unchanged; 12 DEMO property/3 fake users retained. Migration 202610290002_enterprise_identity applied only known loopback development/test targets.
+
+Первинна bootstrap integration перевірка справді впала: `$queryRaw` не десеріалізував void result advisory lock. Замінено на `$executeRaw`, повторний тест успішний. Помилки не приховано та assertions не вимкнено. Final test statuses не включають expected-failure cases як провали.
+
+Hosted CI/GitHub PR API, фізичний iPhone/Safari, full production Docker stack/VPS/TLS, real encrypted backup і restore **не перевірені**. Клієнти/угоди/календар/фінанси/документи ще не створені, їхні acceptance tests не запускалися. MFA потребує runtime key і добровільного enrollment; mandatory rollout/recovery policy ще не завершено.
+
+Після останніх змін стилів Branch/Security та dedicated-module 404 guard повторено test build і всі 6 enterprise scenarios: **6 passed**, 28.7 s. Попередній повний 20/20 прогін залишається regression evidence; жодних tests skip/disable не додано.
+
+Final local smoke after latest normal build: `/api/health` 200 status ok, `/uk` 200, `/admin` 200, `/account/activate` 200; anonymous `/api/identity/security` 401. Сервер слухає лише 127.0.0.1:3000, публікації немає.

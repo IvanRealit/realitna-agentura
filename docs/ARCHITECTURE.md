@@ -14,7 +14,7 @@
 - Гроші нових фінансових сутностей — minor-unit integers або Decimal з явним rounding; існуючий Property.price у цілих EUR не змінюється без міграції/контракту.
 - APP_ENV відокремлюється від NODE_ENV. Production-оптимізація Next.js не означає production dataset. Test має власні БД, порт, build directory і media.
 - Optimistic version preconditions для редагування, database locks/constraints для бронювання й фінансової нумерації. Offline PII не кешувати за замовчуванням.
-- Нові capabilities — deny by default. Legacy ADMIN/MANAGER/AGENT зберігаються до перевіреної міграції семи ролей і branch scope.
+- Нові capabilities — deny by default. Сім ролей і branch scope реалізовано в етапі A; legacy MANAGER зберігає company scope для сумісності.
 - Code migrations: expand → backfill → contract, forward-compatible release, backup/restore gate. Автоматичного rollback SQL через git reset немає.
 
 ## Власники модулів і залежності
@@ -27,7 +27,7 @@
 | Clients              | наступний `src/modules/clients`                         | access, branches, consent                         | contacts, preferences, merge/export      |
 | Leads                | API/leads + Lead                                        | access, properties; далі clients                  | idempotency, assignment, intake          |
 | Deals                | наступний module                                        | clients, leads, properties, agents                | configurable stages, stage events        |
-| Branches & agents    | наступний module                                        | access, User                                      | branch scopes, reassignment              |
+| Branches & agents    | modules/branches + identity/users                       | access, User                                      | branch scopes, reassignment              |
 | Appointments & tasks | наступні modules                                        | deals, clients, agents                            | conflict-safe schedule, reminders        |
 | Documents            | наступний module                                        | private storage, clients/properties/deals, access | versioned metadata, read audit           |
 | Finance              | наступний module                                        | deals, agents, branches                           | commission ledger, invoices, tests       |
@@ -71,3 +71,5 @@ flowchart TD
 ```
 
 Вузли майбутніх модулів на схемі не означають їхню реалізацію. Стан кожного — у FEATURE_MATRIX. Критичні потоки: moderation/versioned update; inquiry→lead→client/deal; appointment locking; invoice numbering; consistent backup+restore. Кожен додається окремим перевіреним PR.
+
+Етап A: `modules/identity` володіє users/tokens/TOTP/one-use factor consumption; `modules/branches` — branch lifecycle/active-branch lock. HTTP identity adapter — `/api/identity/[action]`; security UI окремо від generic business editor. Деталі: architecture/IDENTITY_API.md та security/IDENTITY_REVIEW.md.

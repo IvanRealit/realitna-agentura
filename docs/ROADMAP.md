@@ -31,3 +31,16 @@
 - Спеціаліст перевіряє AML/GDPR/retention та бухгалтер — DPH/commission rules.
 - Для backup: S3-compatible endpoint/bucket, encryption/key custody, immutable retention, recovery approvers. Не передавати секрети в чат.
 - OAuth/portal/email/AI providers потребують офіційної документації, договорів та ключів; не блокують незалежні локальні модулі.
+
+## Завдання №2: A–F
+
+| Етап                  | Стан                                                | Наступний gate                                                                           |
+| --------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| A Foundation          | Завершено bounded identity/roles/branches increment | Review/PR/hosted CI; enrollment справжнього власника                                     |
+| B Core CRM            | Наступний                                           | Client schema/CRUD/consent/duplicate indexes + scoped tests → lead linking → Deal/stages |
+| C Operations          | План                                                | Appointments conflicts/tasks/recurrence/matching після Client/Deal                       |
+| D Business            | План                                                | Private documents/versions/legal drafts, configurable finance formulas, real analytics   |
+| E Reliability         | Production blocker                                  | Real encrypted backup archive/S3/retention/isolated restore/RPO/RTO                      |
+| F Mobile & deployment | Частково: поточні екрани mobile tested              | Real Safari/iPhone, full VPS/staging compose/HTTPS/monitoring/rollback                   |
+
+Scope A: seven roles + legacy MANAGER, Branch CRUD/archive/counts, per-branch API/SSR, user/password/session/token/MFA flows, safe bootstrap and demo seed guard. Повний demo dataset 5/3/30/25/20/15/30/15 — після відповідних моделей B/C, не штучні JSON-заглушки.
